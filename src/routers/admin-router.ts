@@ -1,0 +1,20 @@
+import { Router } from 'express';
+import AdminController from '../controllers/admin-controller';
+import requireAuthentication from '../middlewares/require-authentication';
+import requireRoles from '../middlewares/require-roles';
+import Role from '../types/enums/roles';
+
+function adminRouter() {
+  const router = Router();
+
+  router.use(requireAuthentication);
+  router.get('/teachers', requireRoles([Role.Admin, Role.SuperAdmin]), AdminController.listTeachers);
+  router.patch('/teachers/:id/approve', requireRoles([Role.Admin, Role.SuperAdmin]), AdminController.approveTeacher);
+  router.patch('/teachers/:id/disable', requireRoles([Role.Admin, Role.SuperAdmin]), AdminController.disableTeacher);
+  router.post('/invites', requireRoles([Role.Admin, Role.SuperAdmin]), AdminController.createInvite);
+  router.post('/admins', requireRoles([Role.SuperAdmin]), AdminController.createAdmin);
+
+  return router;
+}
+
+export default adminRouter;

@@ -1,0 +1,4 @@
+{
+  "extends": "./tsconfig.common.json",
+  "include": ["src/**/*", "migrations/**/*", "seeds/**/*", "index.ts", "knexfile.ts"]
+}
