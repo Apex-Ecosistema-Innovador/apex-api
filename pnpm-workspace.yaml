@@ -1,0 +1,5 @@
+allowBuilds:
+  argon2: true
+minimumReleaseAgeExclude:
+  - '@types/node@26.6.4'
+  - supertest@7.3.1

@@ -8,11 +8,11 @@ Node 24+, Docker (Postgres local) o un proyecto Supabase (usar el connection poo
 ## Puesta en marcha
 ```
 cp .env.example .env
-npm install
-npm run db:up
-npm run migrate:latest
-npm run seed:super-admin
-npm run dev
+pnpm install
+pnpm db:up
+pnpm migrate:latest
+pnpm seed:super-admin
+pnpm dev
 ```
 
 ## Scripts
