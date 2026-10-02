@@ -23,7 +23,7 @@ class DashboardService {
     const lines = rows.map((row) =>
       [row.fullName, row.cedula, row.courseName, row.courseCode, row.term, row.points].map(csvCell).join(','),
     );
-    return `﻿${[header.map(csvCell).join(','), ...lines].join('\n')}`;
+    return `${BOM}${[header.map(csvCell).join(','), ...lines].join('\n')}`;
   }
 
   public static async studentDetail(teacherId: string, studentId: string) {
