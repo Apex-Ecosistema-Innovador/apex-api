@@ -19,7 +19,11 @@ export const Errors = {
     status: HttpStatus.Conflict,
     message: 'No puedes salir de una asignatura con polipuntos asignados',
   },
-  InvalidQr: { status: HttpStatus.BadRequest, message: 'El código QR no es válido' },
+  InvalidQr: {
+    status: HttpStatus.BadRequest,
+    message:
+      'Este QR ya no es válido. Pídele al estudiante que lo regenere o que se conecte a internet para actualizarlo.',
+  },
   AwardNotFound: { status: HttpStatus.NotFound, message: 'Registro de polipuntos no encontrado' },
   AwardAlreadyRevoked: { status: HttpStatus.Conflict, message: 'Estos polipuntos ya fueron revertidos' },
   AwardTooOld: { status: HttpStatus.BadRequest, message: 'La fecha del registro es demasiado antigua' },

@@ -127,7 +127,53 @@ describe('offline awards and roster', () => {
           },
         ],
       });
-    expect(response.body.payload[0]).toMatchObject({ status: 'rejected', error: 'El código QR no es válido' });
+    expect(response.body.payload[0]).toMatchObject({
+      status: 'rejected',
+      error: expect.stringContaining('Este QR ya no es válido'),
+    });
+  });
+
+  it('accepts manual awards by student id and records their source', async () => {
+    const studentId = (await database('users').where({ cedula: '6000000001' }).first()).id;
+    const manual = (overrides: Record<string, unknown>) => ({
+      studentId,
+      offeringId,
+      points: 15,
+      idempotencyKey: 'manual-key-0001',
+      occurredAt: hoursAgo(1),
+      ...overrides,
+    });
+
+    const response = await api
+      .post(`${base}/polipoints/awards/batch`)
+      .set(bearer(teacherToken))
+      .send({
+        items: [
+          manual({}),
+          manual({ idempotencyKey: 'manual-key-0002', offeringId: otherOfferingId }),
+          manual({ idempotencyKey: 'manual-key-0003', studentId: undefined }),
+        ],
+      });
+    expect(response.body.payload.map((result: { status: string }) => result.status)).toEqual([
+      'created',
+      'rejected',
+      'rejected',
+    ]);
+
+    const direct = await api.post(`${base}/polipoints/awards`).set(bearer(teacherToken)).send({
+      studentId,
+      offeringId,
+      points: 5,
+      idempotencyKey: 'manual-key-0004',
+      source: 'manual',
+    });
+    expect(direct.status).toBe(201);
+
+    const sources = await database('polipoint_awards')
+      .whereIn('idempotency_key', ['manual-key-0001', 'manual-key-0004', 'offline-key-0001'])
+      .select('idempotency_key', 'source')
+      .orderBy('idempotency_key');
+    expect(sources.map((row) => row.source)).toEqual(['manual', 'manual', 'qr']);
   });
 
   it('returns the teacher roster for offline lookup', async () => {
@@ -135,7 +181,7 @@ describe('offline awards and roster', () => {
     expect(roster.status).toBe(200);
     expect(roster.body.payload.offerings).toHaveLength(2);
     expect(roster.body.payload.students).toEqual([
-      expect.objectContaining({ cedula: '6000000001', offeringIds: [offeringId], total: 10 }),
+      expect.objectContaining({ cedula: '6000000001', offeringIds: [offeringId], total: 30 }),
     ]);
 
     const forbidden = await api.get(`${base}/polipoints/roster`).set(bearer(studentToken));

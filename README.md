@@ -41,7 +41,7 @@ DB_SSL_CA=
 
 ## Modo offline
 - `GET /polipoints/roster`: estudiantes inscritos del profesor y sus asignaturas activas, para que el dispositivo los guarde y pueda identificar un QR sin conexión.
-- `POST /polipoints/awards/batch`: sincroniza asignaciones encoladas (`qrToken`, `offeringId`, `points`, `idempotencyKey`, `occurredAt`). Responde un resultado por ítem (`created`, `duplicate`, `rejected`). La firma y versión del QR se validan aquí. Se rechazan fechas futuras y anteriores a `OFFLINE_AWARD_MAX_AGE_DAYS` (7 por defecto).
+- `POST /polipoints/awards/batch`: sincroniza asignaciones encoladas (`qrToken` o `studentId` para asignaciones manuales, `offeringId`, `points`, `idempotencyKey`, `occurredAt`). Responde un resultado por ítem (`created`, `duplicate`, `rejected`). La firma y versión del QR se validan aquí. Cada asignación guarda su origen en `source` (`qr` o `manual`). Se rechazan fechas futuras y anteriores a `OFFLINE_AWARD_MAX_AGE_DAYS` (7 por defecto).
 
 ## Sesiones y refresh tokens
 El access token (JWT, 15 min) viaja en el header `Authorization` y el cliente lo guarda solo en memoria. El refresh token es opaco (48 bytes aleatorios), vive en la cookie `apex_refresh` (HttpOnly, path `/api/v1/auth`) y en la tabla `refresh_tokens` solo se guarda su hash SHA-256.

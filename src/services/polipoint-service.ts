@@ -7,6 +7,7 @@ import AwardRepo from '../repositories/award-repo';
 import AuthService from './auth-service';
 import { signQrToken, verifyQrToken } from '../lib/qr-token';
 import Role from '../types/enums/roles';
+import AwardSource from '../types/enums/award-source';
 import { env } from '../config/env';
 import { validate } from '../validators/validate';
 import { CreateAwardInput, OfflineAwardInput, offlineAwardSchema } from '../validators/polipoint-validator';
@@ -43,6 +44,14 @@ class PolipointService {
     const student = await UserRepo.findById(decoded.userId);
     if (!student || student.role !== Role.Student || student.qr_token_version !== decoded.version) {
       throw new CustomError(Errors.InvalidQr.status, Errors.InvalidQr.message);
+    }
+    return student;
+  }
+
+  private static async findStudent(studentId: string) {
+    const student = await UserRepo.findById(studentId);
+    if (!student || student.role !== Role.Student) {
+      throw new CustomError(Errors.UserNotFound.status, Errors.UserNotFound.message);
     }
     return student;
   }
@@ -127,9 +136,12 @@ class PolipointService {
   private static async awardOffline(teacherId: string, item: OfflineAwardInput): Promise<BatchStatus> {
     const occurredAt = new Date(item.occurredAt);
     PolipointService.assertOccurredAt(occurredAt);
-    const student = await PolipointService.resolveStudent(item.qrToken);
+    const student = item.qrToken
+      ? await PolipointService.resolveStudent(item.qrToken)
+      : await PolipointService.findStudent(item.studentId!);
     const { created } = await PolipointService.persistAward(teacherId, {
       studentId: student.id,
+      source: item.qrToken ? AwardSource.Qr : AwardSource.Manual,
       offeringId: item.offeringId,
       points: item.points,
       reason: item.reason,

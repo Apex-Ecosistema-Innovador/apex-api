@@ -1,5 +1,6 @@
 import Role from './enums/roles';
 import UserStatus from './enums/user-status';
+import AwardSource from './enums/award-source';
 
 export interface User {
   id: string;
@@ -53,6 +54,7 @@ export interface PolipointAward {
   idempotency_key: string;
   created_at: Date;
   occurred_at: Date;
+  source: AwardSource;
   revoked_at: Date | null;
   revoked_by: string | null;
   revoke_reason: string | null;

@@ -1,5 +1,6 @@
 import database from '../lib/database';
 import { PolipointAward } from '../types/models';
+import AwardSource from '../types/enums/award-source';
 
 interface CreateAwardData {
   studentId: string;
@@ -9,6 +10,7 @@ interface CreateAwardData {
   reason?: string;
   idempotencyKey: string;
   occurredAt?: Date;
+  source?: AwardSource;
 }
 
 export interface AwardHistoryRow {
@@ -50,6 +52,7 @@ class AwardRepo {
         points: data.points,
         reason: data.reason ?? null,
         idempotency_key: data.idempotencyKey,
+        source: data.source ?? AwardSource.Qr,
         ...(data.occurredAt ? { occurred_at: data.occurredAt } : {}),
       })
       .onConflict('idempotency_key')
