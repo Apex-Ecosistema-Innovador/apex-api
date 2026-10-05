@@ -1,4 +1,4 @@
-import { randomBytes } from 'crypto';
+import { randomBytes, randomUUID } from 'crypto';
 import database from '../lib/database';
 import CustomError from '../types/custom-error';
 import { Errors } from '../constants/responses';
@@ -7,7 +7,10 @@ import OfferingRepo from '../repositories/offering-repo';
 import EnrollmentRepo from '../repositories/enrollment-repo';
 import InviteRepo from '../repositories/invite-repo';
 import { hashPassword, verifyPassword } from '../lib/hash';
-import { signAccessToken, signRefreshToken, verifyRefreshToken } from '../lib/jwt';
+import { signAccessToken } from '../lib/jwt';
+import { generateRefreshToken, hashRefreshToken } from '../lib/refresh-token';
+import RefreshTokenRepo from '../repositories/refresh-token-repo';
+import { env } from '../config/env';
 import { normalizeName } from '../lib/normalize';
 import Role from '../types/enums/roles';
 import UserStatus from '../types/enums/user-status';
@@ -34,11 +37,23 @@ class AuthService {
     };
   }
 
-  private static buildSession(user: User): Session {
+  private static async issueRefreshToken(userId: string, familyId: string = randomUUID()): Promise<string> {
+    const token = generateRefreshToken();
+    await RefreshTokenRepo.deleteExpired(userId);
+    await RefreshTokenRepo.create({
+      userId,
+      familyId,
+      tokenHash: hashRefreshToken(token),
+      expiresAt: new Date(Date.now() + env.REFRESH_TOKEN_TTL_DAYS * 24 * 60 * 60 * 1000),
+    });
+    return token;
+  }
+
+  private static async buildSession(user: User, familyId?: string): Promise<Session> {
     return {
       user: AuthService.toPublicUser(user),
       accessToken: signAccessToken(user.id, user.role),
-      refreshToken: signRefreshToken(user.id, user.role),
+      refreshToken: await AuthService.issueRefreshToken(user.id, familyId),
     };
   }
 
@@ -76,7 +91,7 @@ class AuthService {
         await EnrollmentRepo.addMany(created.id, input.offeringIds, trx);
         return created;
       });
-      return AuthService.buildSession(user);
+      return await AuthService.buildSession(user);
     } catch (error) {
       if (isUniqueViolation(error)) throw new CustomError(Errors.CedulaTaken.status, Errors.CedulaTaken.message);
       throw error;
@@ -114,7 +129,7 @@ class AuthService {
 
       return {
         user: AuthService.toPublicUser(user),
-        session: user.status === UserStatus.Active ? AuthService.buildSession(user) : undefined,
+        session: user.status === UserStatus.Active ? await AuthService.buildSession(user) : undefined,
       };
     } catch (error) {
       if (isUniqueViolation(error)) throw new CustomError(Errors.CedulaTaken.status, Errors.CedulaTaken.message);
@@ -134,21 +149,39 @@ class AuthService {
     return AuthService.buildSession(user);
   }
 
-  public static async refresh(refreshToken: string | undefined): Promise<Session> {
-    if (!refreshToken) throw new CustomError(Errors.Unauthenticated.status, Errors.Unauthenticated.message);
+  private static unauthenticated() {
+    return new CustomError(Errors.Unauthenticated.status, Errors.Unauthenticated.message);
+  }
 
-    let userId: string;
-    try {
-      userId = verifyRefreshToken(refreshToken).sub;
-    } catch {
-      throw new CustomError(Errors.Unauthenticated.status, Errors.Unauthenticated.message);
+  public static async refresh(refreshToken: string | undefined): Promise<Session> {
+    if (!refreshToken) throw AuthService.unauthenticated();
+
+    const stored = await RefreshTokenRepo.findByHash(hashRefreshToken(refreshToken));
+    if (!stored || stored.revoked_at || stored.expires_at.getTime() <= Date.now()) {
+      throw AuthService.unauthenticated();
     }
 
-    const user = await UserRepo.findById(userId);
-    if (!user) throw new CustomError(Errors.Unauthenticated.status, Errors.Unauthenticated.message);
+    const claimed = await RefreshTokenRepo.markUsed(stored.id);
+    if (!claimed) {
+      const latest = (await RefreshTokenRepo.findByHash(stored.token_hash)) ?? stored;
+      const graceEnds = (latest.used_at?.getTime() ?? 0) + env.REFRESH_REUSE_GRACE_SECONDS * 1000;
+      if (latest.revoked_at || Date.now() > graceEnds) {
+        await RefreshTokenRepo.revokeFamily(stored.family_id);
+        throw AuthService.unauthenticated();
+      }
+    }
+
+    const user = await UserRepo.findById(stored.user_id);
+    if (!user) throw AuthService.unauthenticated();
 
     AuthService.assertCanSignIn(user);
-    return AuthService.buildSession(user);
+    return AuthService.buildSession(user, stored.family_id);
+  }
+
+  public static async logout(refreshToken: string | undefined): Promise<void> {
+    if (!refreshToken) return;
+    const stored = await RefreshTokenRepo.findByHash(hashRefreshToken(refreshToken));
+    if (stored) await RefreshTokenRepo.revokeFamily(stored.family_id);
   }
 
   public static async me(userId: string): Promise<PublicUser> {

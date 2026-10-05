@@ -47,7 +47,8 @@ class AuthController {
     respondWithSession(res, session, HttpStatus.Success, Successes.LoggedIn);
   }
 
-  public static async logout(_req: Request, res: Response) {
+  public static async logout(req: Request, res: Response) {
+    await AuthService.logout(req.cookies?.[REFRESH_COOKIE]);
     clearRefreshCookie(res);
     BaseController.handleSuccess(res, { message: Successes.LoggedOut });
   }

@@ -42,3 +42,12 @@ DB_SSL_CA=
 ## Modo offline
 - `GET /polipoints/roster`: estudiantes inscritos del profesor y sus asignaturas activas, para que el dispositivo los guarde y pueda identificar un QR sin conexión.
 - `POST /polipoints/awards/batch`: sincroniza asignaciones encoladas (`qrToken`, `offeringId`, `points`, `idempotencyKey`, `occurredAt`). Responde un resultado por ítem (`created`, `duplicate`, `rejected`). La firma y versión del QR se validan aquí. Se rechazan fechas futuras y anteriores a `OFFLINE_AWARD_MAX_AGE_DAYS` (7 por defecto).
+
+## Sesiones y refresh tokens
+El access token (JWT, 15 min) viaja en el header `Authorization` y el cliente lo guarda solo en memoria. El refresh token es opaco (48 bytes aleatorios), vive en la cookie `apex_refresh` (HttpOnly, path `/api/v1/auth`) y en la tabla `refresh_tokens` solo se guarda su hash SHA-256.
+
+- Cada `POST /auth/refresh` marca el token como usado y emite uno nuevo de la misma familia (una familia por inicio de sesión).
+- Reutilizar un token ya usado fuera de `REFRESH_REUSE_GRACE_SECONDS` (10 s por defecto, para respuestas perdidas o pestañas simultáneas) se trata como robo: se revoca toda la familia.
+- `POST /auth/logout` revoca la familia. Deshabilitar a un profesor revoca todas sus sesiones.
+- Los tokens vencidos de un usuario se eliminan cuando emite uno nuevo.
+- Un access token ya emitido sigue siendo válido hasta que vence (15 min).

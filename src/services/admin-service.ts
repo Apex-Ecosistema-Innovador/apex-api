@@ -2,6 +2,7 @@ import CustomError from '../types/custom-error';
 import { Errors } from '../constants/responses';
 import UserRepo from '../repositories/user-repo';
 import InviteRepo from '../repositories/invite-repo';
+import RefreshTokenRepo from '../repositories/refresh-token-repo';
 import AuthService from './auth-service';
 import { hashPassword } from '../lib/hash';
 import { normalizeName } from '../lib/normalize';
@@ -21,6 +22,7 @@ class AdminService {
       throw new CustomError(Errors.UserNotFound.status, Errors.UserNotFound.message);
     }
     const updated = await UserRepo.updateStatus(id, status);
+    if (status === UserStatus.Disabled) await RefreshTokenRepo.revokeAllForUser(id);
     return AuthService.toPublicUser(updated!);
   }
 
