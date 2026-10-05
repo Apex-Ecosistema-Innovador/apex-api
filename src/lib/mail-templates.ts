@@ -51,6 +51,8 @@ export function passwordChangedMessage({ to, fullName, recoveryUrl, changedAt }:
       'Si fuiste tú, no tienes que hacer nada más.',
     ],
     action: { label: 'No fui yo, recuperar mi cuenta', url: recoveryUrl },
-    notes: ['Si no reconoces este cambio, usa el botón para pedir un enlace de recuperación y crear una nueva contraseña. Al hacerlo se cerrarán todas las sesiones abiertas.'],
+    notes: [
+      'Si no reconoces este cambio, usa el botón para pedir un enlace de recuperación y crear una nueva contraseña. Al hacerlo se cerrarán todas las sesiones abiertas.',
+    ],
   });
 }
