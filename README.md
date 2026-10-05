@@ -68,6 +68,9 @@ Se usa SMTP (`SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASSWOR
 ### Plantillas de correo
 `src/lib/mail-layout.ts` renderiza todos los correos con el mismo diseño de la web (fondo oscuro, tarjeta, botón verde, wordmark APEX) usando tablas y estilos en línea para que funcione en Gmail y Outlook, más una versión en texto plano. El símbolo viaja como adjunto embebido (`cid:`), desde `assets/mail/apex-symbol.png`, para no depender de imágenes remotas que los clientes bloquean. Los textos viven en `src/lib/mail-templates.ts`. Hoy se envían dos: el enlace de restablecimiento y el aviso de contraseña cambiada.
 
+## Desarrollo en red local
+Con `NODE_ENV=development` el CORS acepta, además de `CORS_ORIGINS`, cualquier origen de `localhost`, de IPs privadas y de `*.local`, para probar desde el celular sin configurar nada. En `production` solo vale `CORS_ORIGINS`, y la cookie de refresh es `Secure`.
+
 ## Puerto
 El API escucha en `PORT` (4000 por defecto; el 5000 queda libre para otros proyectos). El frontend lo toma de `NEXT_PUBLIC_API_URL`.
 

@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
 import { env } from './config/env';
+import { buildCorsOrigin } from './lib/cors-origin';
 import handleError, { handleNotFound } from './middlewares/handle-error';
 import authRouter from './routers/auth-router';
 import offeringRouter from './routers/offering-router';
@@ -27,7 +28,7 @@ class Server {
   private useMiddleware() {
     this.app.set('trust proxy', 1);
     this.app.use(helmet());
-    this.app.use(cors({ origin: env.corsOrigins, credentials: true }));
+    this.app.use(cors({ origin: buildCorsOrigin(env.corsOrigins, !env.isProduction), credentials: true }));
     if (!env.isTest) this.app.use(morgan('tiny'));
     this.app.use(express.json({ limit: '100kb' }));
     this.app.use(cookieParser());
