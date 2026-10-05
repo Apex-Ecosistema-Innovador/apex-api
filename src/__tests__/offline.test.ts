@@ -35,6 +35,7 @@ describe('offline awards and roster', () => {
     const teacher = await api.post(`${base}/auth/register/teacher`).send({
       cedula: '5000000001',
       fullName: 'Profe Offline',
+      email: 'profe.offline@elpoli.edu.co',
       password: 'password123',
       inviteCode: invite.body.payload.code,
     });
@@ -54,6 +55,7 @@ describe('offline awards and roster', () => {
     const student = await api.post(`${base}/auth/register/student`).send({
       cedula: '6000000001',
       fullName: 'Estudiante Offline',
+      email: 'estudiante.offline@elpoli.edu.co',
       password: 'password123',
       offeringIds: [offeringId],
     });

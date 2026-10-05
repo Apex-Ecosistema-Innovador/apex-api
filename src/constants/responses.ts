@@ -8,6 +8,13 @@ export const Errors = {
   AccountPending: { status: HttpStatus.Forbidden, message: 'Tu cuenta está pendiente de aprobación' },
   AccountDisabled: { status: HttpStatus.Forbidden, message: 'Tu cuenta está deshabilitada' },
   CedulaTaken: { status: HttpStatus.Conflict, message: 'Ya existe una cuenta con esa cédula' },
+  EmailTaken: { status: HttpStatus.Conflict, message: 'Ya existe una cuenta con ese correo' },
+  InvalidResetToken: {
+    status: HttpStatus.BadRequest,
+    message: 'El enlace para restablecer la contraseña no es válido o expiró. Solicita uno nuevo.',
+  },
+  WrongPassword: { status: HttpStatus.BadRequest, message: 'La contraseña actual no es correcta' },
+  SamePassword: { status: HttpStatus.BadRequest, message: 'La nueva contraseña debe ser diferente a la actual' },
   InvalidInvite: { status: HttpStatus.BadRequest, message: 'El código de invitación no es válido o expiró' },
   UserNotFound: { status: HttpStatus.NotFound, message: 'Usuario no encontrado' },
   OfferingNotFound: { status: HttpStatus.NotFound, message: 'Asignatura no encontrada' },
@@ -47,5 +54,8 @@ export const Successes = {
   TeacherUpdated: 'Profesor actualizado',
   InviteCreated: 'Invitación creada',
   AdminCreated: 'Administrador creado',
+  PasswordResetRequested: 'Si el correo está registrado, te enviamos las instrucciones para restablecer tu contraseña',
+  PasswordReset: 'Contraseña actualizada. Ya puedes iniciar sesión',
+  PasswordChanged: 'Contraseña actualizada',
   QrRotated: 'Código QR regenerado',
 } as const;

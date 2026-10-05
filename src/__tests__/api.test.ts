@@ -11,9 +11,10 @@ const base = '/api/v1';
 const bearer = (token: string) => ({ Authorization: `Bearer ${token}` });
 
 async function registerTeacherWithInvite(cedula: string, fullName: string, inviteCode: string) {
+  const email = `${cedula}@elpoli.edu.co`;
   const res = await api
     .post(`${base}/auth/register/teacher`)
-    .send({ cedula, fullName, password: 'password123', inviteCode });
+    .send({ cedula, fullName, email, password: 'password123', inviteCode });
   return res.body.payload.accessToken as string;
 }
 
@@ -72,6 +73,7 @@ describe('polipuntos api', () => {
     const student = await api.post(`${base}/auth/register/student`).send({
       cedula: '1.234.567.890',
       fullName: 'María José Pérez',
+      email: 'maria.perez@elpoli.edu.co',
       password: 'password123',
       offeringIds: [o1.body.payload.id, o2.body.payload.id, o3.body.payload.id],
     });
@@ -80,7 +82,7 @@ describe('polipuntos api', () => {
 
     const dupStudent = await api
       .post(`${base}/auth/register/student`)
-      .send({ cedula: '1234567890', fullName: 'Otra Persona', password: 'password123' });
+      .send({ cedula: '1234567890', fullName: 'Otra Persona', email: 'otra@elpoli.edu.co', password: 'password123' });
     expect(dupStudent.status).toBe(409);
 
     const qr = await api.get(`${base}/polipoints/me/qr`).set(bearer(studentToken));
@@ -174,9 +176,12 @@ describe('polipuntos api', () => {
   });
 
   it('keeps teachers without invite pending until approved', async () => {
-    const reg = await api
-      .post(`${base}/auth/register/teacher`)
-      .send({ cedula: '3000000001', fullName: 'Profe Pendiente', password: 'password123' });
+    const reg = await api.post(`${base}/auth/register/teacher`).send({
+      cedula: '3000000001',
+      fullName: 'Profe Pendiente',
+      email: 'pendiente@elpoli.edu.co',
+      password: 'password123',
+    });
     expect(reg.status).toBe(201);
     expect(reg.body.payload.accessToken).toBeUndefined();
 
@@ -196,14 +201,14 @@ describe('polipuntos api', () => {
     const created = await api
       .post(`${base}/admin/admins`)
       .set(bearer(adminToken))
-      .send({ cedula: '4000000001', fullName: 'Admin Dos', password: 'password123' });
+      .send({ cedula: '4000000001', fullName: 'Admin Dos', email: 'admin2@elpoli.edu.co', password: 'password123' });
     expect(created.status).toBe(201);
 
     const adminLogin = await api.post(`${base}/auth/login`).send({ cedula: '4000000001', password: 'password123' });
     const denied = await api
       .post(`${base}/admin/admins`)
       .set(bearer(adminLogin.body.payload.accessToken))
-      .send({ cedula: '4000000002', fullName: 'Admin Tres', password: 'password123' });
+      .send({ cedula: '4000000002', fullName: 'Admin Tres', email: 'admin3@elpoli.edu.co', password: 'password123' });
     expect(denied.status).toBe(403);
   });
 });

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { cedulaSchema, fullNameSchema, passwordSchema, paginationSchema } from './common';
+import { cedulaSchema, fullNameSchema, institutionalEmailSchema, passwordSchema, paginationSchema } from './common';
 import UserStatus from '../types/enums/user-status';
 
 export const teachersQuerySchema = paginationSchema.extend({
@@ -13,6 +13,7 @@ export const createInviteSchema = z.object({
 export const createAdminSchema = z.object({
   cedula: cedulaSchema,
   fullName: fullNameSchema,
+  email: institutionalEmailSchema,
   password: passwordSchema,
 });
 

@@ -1,5 +1,7 @@
 allowBuilds:
+  '@parcel/watcher': false
   argon2: true
+  unrs-resolver: false
 minimumReleaseAgeExclude:
   - '@types/node@26.6.4'
   - supertest@7.3.1

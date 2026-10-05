@@ -8,6 +8,9 @@ import EnrollmentRepo from '../repositories/enrollment-repo';
 import InviteRepo from '../repositories/invite-repo';
 import { hashPassword, verifyPassword } from '../lib/hash';
 import { signAccessToken } from '../lib/jwt';
+import { mailer } from '../lib/mailer';
+import { passwordResetMessage } from '../lib/mail-templates';
+import PasswordResetRepo from '../repositories/password-reset-repo';
 import { generateRefreshToken, hashRefreshToken } from '../lib/refresh-token';
 import RefreshTokenRepo from '../repositories/refresh-token-repo';
 import { env } from '../config/env';
@@ -23,7 +26,13 @@ export interface Session {
   refreshToken: string;
 }
 
-const isUniqueViolation = (error: unknown) => (error as { code?: string })?.code === '23505';
+const uniqueViolation = (error: unknown) => {
+  const { code, constraint } = error as { code?: string; constraint?: string };
+  if (code !== '23505') return null;
+  return constraint?.includes('email')
+    ? new CustomError(Errors.EmailTaken.status, Errors.EmailTaken.message)
+    : new CustomError(Errors.CedulaTaken.status, Errors.CedulaTaken.message);
+};
 
 class AuthService {
   public static toPublicUser(user: User): PublicUser {
@@ -93,8 +102,7 @@ class AuthService {
       });
       return await AuthService.buildSession(user);
     } catch (error) {
-      if (isUniqueViolation(error)) throw new CustomError(Errors.CedulaTaken.status, Errors.CedulaTaken.message);
-      throw error;
+      throw uniqueViolation(error) ?? error;
     }
   }
 
@@ -132,8 +140,7 @@ class AuthService {
         session: user.status === UserStatus.Active ? await AuthService.buildSession(user) : undefined,
       };
     } catch (error) {
-      if (isUniqueViolation(error)) throw new CustomError(Errors.CedulaTaken.status, Errors.CedulaTaken.message);
-      throw error;
+      throw uniqueViolation(error) ?? error;
     }
   }
 
@@ -182,6 +189,64 @@ class AuthService {
     if (!refreshToken) return;
     const stored = await RefreshTokenRepo.findByHash(hashRefreshToken(refreshToken));
     if (stored) await RefreshTokenRepo.revokeFamily(stored.family_id);
+  }
+
+  public static async requestPasswordReset(email: string): Promise<void> {
+    const user = await UserRepo.findByEmail(email);
+    if (!user) return;
+
+    const latest = await PasswordResetRepo.latestForUser(user.id);
+    if (latest && Date.now() - latest.created_at.getTime() < env.PASSWORD_RESET_COOLDOWN_SECONDS * 1000) return;
+
+    await PasswordResetRepo.invalidateForUser(user.id);
+    const token = generateRefreshToken();
+    await PasswordResetRepo.create(
+      user.id,
+      hashRefreshToken(token),
+      new Date(Date.now() + env.PASSWORD_RESET_TTL_MINUTES * 60 * 1000),
+    );
+
+    const link = `${env.WEB_BASE_URL.replace(/\/$/, '')}/restablecer-contrasena#token=${token}`;
+    void mailer
+      .send(
+        passwordResetMessage({
+          to: user.email!,
+          fullName: user.full_name,
+          link,
+          ttlMinutes: env.PASSWORD_RESET_TTL_MINUTES,
+        }),
+      )
+      .catch((error) => {
+        if (!env.isTest) console.error('password reset email failed', error);
+      });
+  }
+
+  public static async resetPassword(token: string, newPassword: string): Promise<void> {
+    const stored = await PasswordResetRepo.findByHash(hashRefreshToken(token));
+    if (!stored || !(await PasswordResetRepo.consume(stored.id))) {
+      throw new CustomError(Errors.InvalidResetToken.status, Errors.InvalidResetToken.message);
+    }
+
+    await UserRepo.updatePassword(stored.user_id, await hashPassword(newPassword));
+    await PasswordResetRepo.invalidateForUser(stored.user_id);
+    await RefreshTokenRepo.revokeAllForUser(stored.user_id);
+  }
+
+  public static async changePassword(userId: string, currentPassword: string, newPassword: string): Promise<Session> {
+    const user = await UserRepo.findById(userId);
+    if (!user) throw new CustomError(Errors.UserNotFound.status, Errors.UserNotFound.message);
+
+    if (!(await verifyPassword(user.password_hash, currentPassword))) {
+      throw new CustomError(Errors.WrongPassword.status, Errors.WrongPassword.message);
+    }
+    if (currentPassword === newPassword) {
+      throw new CustomError(Errors.SamePassword.status, Errors.SamePassword.message);
+    }
+
+    await UserRepo.updatePassword(user.id, await hashPassword(newPassword));
+    await PasswordResetRepo.invalidateForUser(user.id);
+    await RefreshTokenRepo.revokeAllForUser(user.id);
+    return AuthService.buildSession(user);
   }
 
   public static async me(userId: string): Promise<PublicUser> {

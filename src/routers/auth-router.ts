@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import AuthController from '../controllers/auth-controller';
 import requireAuthentication from '../middlewares/require-authentication';
-import { authLimiter } from '../middlewares/rate-limit';
+import { authLimiter, passwordResetLimiter } from '../middlewares/rate-limit';
 
 function authRouter() {
   const router = Router();
@@ -11,6 +11,9 @@ function authRouter() {
   router.post('/login', authLimiter, AuthController.login);
   router.post('/refresh', AuthController.refresh);
   router.post('/logout', AuthController.logout);
+  router.post('/forgot-password', passwordResetLimiter, AuthController.forgotPassword);
+  router.post('/reset-password', passwordResetLimiter, AuthController.resetPassword);
+  router.post('/change-password', requireAuthentication, authLimiter, AuthController.changePassword);
   router.get('/me', requireAuthentication, AuthController.me);
 
   return router;

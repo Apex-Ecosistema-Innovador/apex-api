@@ -40,6 +40,7 @@ class AdminService {
       cedula: input.cedula,
       fullName: input.fullName,
       fullNameSearch: normalizeName(input.fullName),
+      email: input.email,
       passwordHash: await hashPassword(input.password),
       role: Role.Admin,
       status: UserStatus.Active,

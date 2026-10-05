@@ -22,6 +22,14 @@ class UserRepo {
     return database<User>('users').where({ cedula }).first();
   }
 
+  public static async findByEmail(email: string): Promise<User | undefined> {
+    return database<User>('users').where({ email: email.toLowerCase() }).first();
+  }
+
+  public static async updatePassword(id: string, passwordHash: string): Promise<void> {
+    await database<User>('users').where({ id }).update({ password_hash: passwordHash, updated_at: database.fn.now() });
+  }
+
   public static async create(data: CreateUserData, trx = database): Promise<User> {
     const [user] = await trx<User>('users')
       .insert({

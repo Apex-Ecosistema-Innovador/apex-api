@@ -51,3 +51,13 @@ El access token (JWT, 15 min) viaja en el header `Authorization` y el cliente lo
 - `POST /auth/logout` revoca la familia. Deshabilitar a un profesor revoca todas sus sesiones.
 - Los tokens vencidos de un usuario se eliminan cuando emite uno nuevo.
 - Un access token ya emitido sigue siendo válido hasta que vence (15 min).
+
+## Correo institucional y recuperación de contraseña
+- El correo es obligatorio al registrarse (estudiantes, profesores y administradores) y debe terminar en `@${ALLOWED_EMAIL_DOMAIN}` (`elpoli.edu.co` por defecto). Se guarda en minúsculas y es único.
+- `POST /auth/forgot-password { email }` responde siempre lo mismo, exista o no el correo. Si existe, envía un enlace `WEB_BASE_URL/restablecer-contrasena#token=…` válido `PASSWORD_RESET_TTL_MINUTES` (60). El token va en el fragmento de la URL para que no llegue a logs ni al `Referer`. Hay un enfriamiento de `PASSWORD_RESET_COOLDOWN_SECONDS` entre envíos y límite de peticiones por IP.
+- `POST /auth/reset-password { token, password }` cambia la contraseña una sola vez, invalida los demás enlaces y cierra todas las sesiones del usuario.
+- `POST /auth/change-password { currentPassword, newPassword }` (autenticado) cierra las demás sesiones y deja abierta la del dispositivo actual.
+- Los tokens de restablecimiento se guardan solo como hash SHA-256 (`password_reset_tokens`).
+
+### Envío de correo
+Se usa SMTP (`SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASSWORD`, `MAIL_FROM`); sirve con cualquier proveedor (Resend, Brevo, SES, Gmail con contraseña de aplicación). En producción `SMTP_HOST` es obligatorio. En desarrollo, sin SMTP, el correo se imprime en consola con el enlace. Para que los mensajes lleguen a `@elpoli.edu.co` y no caigan en spam, configura SPF y DKIM del dominio remitente.

@@ -4,7 +4,14 @@ import AuthService, { Session } from '../services/auth-service';
 import HttpStatus from '../types/enums/http-status';
 import { Successes } from '../constants/responses';
 import { validate } from '../validators/validate';
-import { loginSchema, registerStudentSchema, registerTeacherSchema } from '../validators/auth-validator';
+import {
+  changePasswordSchema,
+  forgotPasswordSchema,
+  loginSchema,
+  registerStudentSchema,
+  registerTeacherSchema,
+  resetPasswordSchema,
+} from '../validators/auth-validator';
 import { clearRefreshCookie, REFRESH_COOKIE, setRefreshCookie } from '../lib/refresh-cookie';
 
 const respondWithSession = (res: Response, session: Session, statusCode: HttpStatus, message: string) => {
@@ -51,6 +58,24 @@ class AuthController {
     await AuthService.logout(req.cookies?.[REFRESH_COOKIE]);
     clearRefreshCookie(res);
     BaseController.handleSuccess(res, { message: Successes.LoggedOut });
+  }
+
+  public static async forgotPassword(req: Request, res: Response) {
+    const { email } = validate(forgotPasswordSchema, req.body);
+    await AuthService.requestPasswordReset(email);
+    BaseController.handleSuccess(res, { message: Successes.PasswordResetRequested });
+  }
+
+  public static async resetPassword(req: Request, res: Response) {
+    const { token, password } = validate(resetPasswordSchema, req.body);
+    await AuthService.resetPassword(token, password);
+    BaseController.handleSuccess(res, { message: Successes.PasswordReset });
+  }
+
+  public static async changePassword(req: Request, res: Response) {
+    const { currentPassword, newPassword } = validate(changePasswordSchema, req.body);
+    const session = await AuthService.changePassword(req.auth!.userId, currentPassword, newPassword);
+    respondWithSession(res, session, HttpStatus.Success, Successes.PasswordChanged);
   }
 
   public static async me(req: Request, res: Response) {

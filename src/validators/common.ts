@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { env } from '../config/env';
 import { normalizeCedula } from '../lib/normalize';
 
 export const cedulaSchema = z
@@ -17,3 +18,14 @@ export const paginationSchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
 });
+
+export const institutionalEmailSchema = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .max(254)
+  .pipe(z.email('Ingresa un correo válido'))
+  .refine(
+    (value) => value.endsWith(`@${env.ALLOWED_EMAIL_DOMAIN}`),
+    `Usa tu correo institucional (@${env.ALLOWED_EMAIL_DOMAIN})`,
+  );

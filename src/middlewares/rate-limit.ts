@@ -14,4 +14,6 @@ const buildLimiter = (windowMs: number, limit: number) =>
 
 export const authLimiter = buildLimiter(15 * 60 * 1000, 30);
 
+export const passwordResetLimiter = buildLimiter(15 * 60 * 1000, 10);
+
 export const awardLimiter = buildLimiter(60 * 1000, 60);
