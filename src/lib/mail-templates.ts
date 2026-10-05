@@ -50,7 +50,7 @@ export function passwordChangedMessage({ to, fullName, recoveryUrl, changedAt }:
       `La contraseña de tu cuenta en APEX Polipuntos se cambió el ${formatChangedAt(changedAt)} (hora de Colombia). Por seguridad cerramos tus otras sesiones.`,
       'Si fuiste tú, no tienes que hacer nada más.',
     ],
-    action: { label: 'No fui yo, proteger mi cuenta', url: recoveryUrl },
-    notes: ['Si no reconoces este cambio, restablece tu contraseña de inmediato desde el botón.'],
+    action: { label: 'No fui yo, recuperar mi cuenta', url: recoveryUrl },
+    notes: ['Si no reconoces este cambio, usa el botón para pedir un enlace de recuperación y crear una nueva contraseña. Al hacerlo se cerrarán todas las sesiones abiertas.'],
   });
 }
