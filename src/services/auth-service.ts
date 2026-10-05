@@ -8,8 +8,8 @@ import EnrollmentRepo from '../repositories/enrollment-repo';
 import InviteRepo from '../repositories/invite-repo';
 import { hashPassword, verifyPassword } from '../lib/hash';
 import { signAccessToken } from '../lib/jwt';
-import { mailer } from '../lib/mailer';
-import { passwordResetMessage } from '../lib/mail-templates';
+import { mailer, MailMessage } from '../lib/mailer';
+import { passwordChangedMessage, passwordResetMessage } from '../lib/mail-templates';
 import PasswordResetRepo from '../repositories/password-reset-repo';
 import { generateRefreshToken, hashRefreshToken } from '../lib/refresh-token';
 import RefreshTokenRepo from '../repositories/refresh-token-repo';
@@ -191,6 +191,28 @@ class AuthService {
     if (stored) await RefreshTokenRepo.revokeFamily(stored.family_id);
   }
 
+  private static webUrl(path: string): string {
+    return `${env.WEB_BASE_URL.replace(/\/$/, '')}${path}`;
+  }
+
+  private static dispatch(message: MailMessage): void {
+    void mailer.send(message).catch((error) => {
+      if (!env.isTest) console.error('email delivery failed', error);
+    });
+  }
+
+  private static notifyPasswordChanged(user: User): void {
+    if (!user.email) return;
+    AuthService.dispatch(
+      passwordChangedMessage({
+        to: user.email,
+        fullName: user.full_name,
+        recoveryUrl: AuthService.webUrl('/recuperar-contrasena'),
+        changedAt: new Date(),
+      }),
+    );
+  }
+
   public static async requestPasswordReset(email: string): Promise<void> {
     const user = await UserRepo.findByEmail(email);
     if (!user) return;
@@ -206,19 +228,14 @@ class AuthService {
       new Date(Date.now() + env.PASSWORD_RESET_TTL_MINUTES * 60 * 1000),
     );
 
-    const link = `${env.WEB_BASE_URL.replace(/\/$/, '')}/restablecer-contrasena#token=${token}`;
-    void mailer
-      .send(
-        passwordResetMessage({
-          to: user.email!,
-          fullName: user.full_name,
-          link,
-          ttlMinutes: env.PASSWORD_RESET_TTL_MINUTES,
-        }),
-      )
-      .catch((error) => {
-        if (!env.isTest) console.error('password reset email failed', error);
-      });
+    AuthService.dispatch(
+      passwordResetMessage({
+        to: user.email!,
+        fullName: user.full_name,
+        link: AuthService.webUrl(`/restablecer-contrasena#token=${token}`),
+        ttlMinutes: env.PASSWORD_RESET_TTL_MINUTES,
+      }),
+    );
   }
 
   public static async resetPassword(token: string, newPassword: string): Promise<void> {
@@ -230,6 +247,9 @@ class AuthService {
     await UserRepo.updatePassword(stored.user_id, await hashPassword(newPassword));
     await PasswordResetRepo.invalidateForUser(stored.user_id);
     await RefreshTokenRepo.revokeAllForUser(stored.user_id);
+
+    const user = await UserRepo.findById(stored.user_id);
+    if (user) AuthService.notifyPasswordChanged(user);
   }
 
   public static async changePassword(userId: string, currentPassword: string, newPassword: string): Promise<Session> {
@@ -246,6 +266,7 @@ class AuthService {
     await UserRepo.updatePassword(user.id, await hashPassword(newPassword));
     await PasswordResetRepo.invalidateForUser(user.id);
     await RefreshTokenRepo.revokeAllForUser(user.id);
+    AuthService.notifyPasswordChanged(user);
     return AuthService.buildSession(user);
   }
 

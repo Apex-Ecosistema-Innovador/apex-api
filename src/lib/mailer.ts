@@ -1,11 +1,19 @@
 import nodemailer from 'nodemailer';
 import { env } from '../config/env';
 
+export interface MailAttachment {
+  filename: string;
+  content: Buffer;
+  cid: string;
+  contentType: string;
+}
+
 export interface MailMessage {
   to: string;
   subject: string;
   text: string;
   html: string;
+  attachments?: MailAttachment[];
 }
 
 interface MailTransport {

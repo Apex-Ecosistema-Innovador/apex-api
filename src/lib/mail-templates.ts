@@ -1,4 +1,15 @@
+import { emailAttachments, EmailContent, renderEmail, renderPlainText } from './mail-layout';
 import { MailMessage } from './mailer';
+
+const build = (to: string, subject: string, content: EmailContent): MailMessage => ({
+  to,
+  subject,
+  text: renderPlainText(content),
+  html: renderEmail(content),
+  attachments: emailAttachments(),
+});
+
+const firstNameOf = (fullName: string) => fullName.trim().split(/\s+/)[0] ?? '';
 
 interface PasswordResetTemplate {
   to: string;
@@ -7,30 +18,39 @@ interface PasswordResetTemplate {
   ttlMinutes: number;
 }
 
-const escapeHtml = (value: string) =>
-  value.replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]!);
-
 export function passwordResetMessage({ to, fullName, link, ttlMinutes }: PasswordResetTemplate): MailMessage {
-  const firstName = fullName.split(/\s+/)[0] ?? '';
-  const text = [
-    `Hola ${firstName},`,
-    '',
-    'Recibimos una solicitud para restablecer tu contraseña de APEX Polipuntos.',
-    `Usa este enlace en los próximos ${ttlMinutes} minutos:`,
-    '',
-    link,
-    '',
-    'Si no fuiste tú, ignora este mensaje: tu contraseña no cambiará.',
-  ].join('\n');
+  return build(to, 'Restablece tu contraseña de APEX Polipuntos', {
+    preheader: `Crea una nueva contraseña. El enlace vence en ${ttlMinutes} minutos.`,
+    title: 'Restablece tu contraseña',
+    paragraphs: [
+      `Hola ${firstNameOf(fullName)},`,
+      `Recibimos una solicitud para restablecer la contraseña de tu cuenta en APEX Polipuntos. El enlace vence en ${ttlMinutes} minutos y solo se puede usar una vez.`,
+    ],
+    action: { label: 'Crear nueva contraseña', url: link },
+    notes: ['Si no fuiste tú, ignora este mensaje: tu contraseña no cambiará.'],
+  });
+}
 
-  const html = `<div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;color:#111">
-<h2 style="margin:0 0 16px">Restablece tu contraseña</h2>
-<p>Hola ${escapeHtml(firstName)},</p>
-<p>Recibimos una solicitud para restablecer tu contraseña de APEX Polipuntos. El enlace vence en ${ttlMinutes} minutos.</p>
-<p><a href="${escapeHtml(link)}" style="display:inline-block;padding:12px 20px;background:#00842d;color:#fff;text-decoration:none;border-radius:8px">Crear nueva contraseña</a></p>
-<p style="font-size:13px;color:#555">Si el botón no funciona, copia este enlace en tu navegador:<br>${escapeHtml(link)}</p>
-<p style="font-size:13px;color:#555">Si no fuiste tú, ignora este mensaje: tu contraseña no cambiará.</p>
-</div>`;
+interface PasswordChangedTemplate {
+  to: string;
+  fullName: string;
+  recoveryUrl: string;
+  changedAt: Date;
+}
 
-  return { to, subject: 'Restablece tu contraseña de APEX Polipuntos', text, html };
+const formatChangedAt = (date: Date) =>
+  new Intl.DateTimeFormat('es-CO', { dateStyle: 'long', timeStyle: 'short', timeZone: 'America/Bogota' }).format(date);
+
+export function passwordChangedMessage({ to, fullName, recoveryUrl, changedAt }: PasswordChangedTemplate): MailMessage {
+  return build(to, 'Tu contraseña de APEX Polipuntos fue actualizada', {
+    preheader: 'Cambiaste la contraseña de tu cuenta.',
+    title: 'Tu contraseña fue actualizada',
+    paragraphs: [
+      `Hola ${firstNameOf(fullName)},`,
+      `La contraseña de tu cuenta en APEX Polipuntos se cambió el ${formatChangedAt(changedAt)} (hora de Colombia). Por seguridad cerramos tus otras sesiones.`,
+      'Si fuiste tú, no tienes que hacer nada más.',
+    ],
+    action: { label: 'No fui yo, proteger mi cuenta', url: recoveryUrl },
+    notes: ['Si no reconoces este cambio, restablece tu contraseña de inmediato desde el botón.'],
+  });
 }

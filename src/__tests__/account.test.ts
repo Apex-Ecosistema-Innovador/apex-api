@@ -120,8 +120,12 @@ describe('password recovery and change', () => {
     const weak = await api.post(`${base}/auth/reset-password`).send({ token, password: 'short' });
     expect(weak.status).toBe(400);
 
+    outbox.length = 0;
     const reset = await api.post(`${base}/auth/reset-password`).send({ token, password: 'nueva-clave-1' });
     expect(reset.status).toBe(200);
+    await waitForMail(1);
+    expect(outbox[0].subject).toContain('actualizada');
+    expect(outbox[0].to).toBe('ana.gomez@elpoli.edu.co');
 
     expect((await api.post(`${base}/auth/reset-password`).send({ token, password: 'otra-clave-22' })).status).toBe(400);
     expect((await api.post(`${base}/auth/login`).send({ cedula: '9000000001', password: 'password123' })).status).toBe(
@@ -184,6 +188,8 @@ describe('password recovery and change', () => {
       .send({ currentPassword: 'nueva-clave-1', newPassword: 'clave-nueva-3' });
     expect(changed.status).toBe(200);
     expect(changed.body.payload.accessToken).toBeDefined();
+    await waitForMail(1);
+    expect(outbox[0].subject).toContain('actualizada');
 
     const newRefresh = cookieOf(changed);
     expect((await api.post(`${base}/auth/refresh`).set({ Cookie: `apex_refresh=${oldRefresh}` })).status).toBe(401);

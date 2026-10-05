@@ -61,3 +61,9 @@ El access token (JWT, 15 min) viaja en el header `Authorization` y el cliente lo
 
 ### Envío de correo
 Se usa SMTP (`SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASSWORD`, `MAIL_FROM`); sirve con cualquier proveedor (Resend, Brevo, SES, Gmail con contraseña de aplicación). En producción `SMTP_HOST` es obligatorio. En desarrollo, sin SMTP, el correo se imprime en consola con el enlace. Para que los mensajes lleguen a `@elpoli.edu.co` y no caigan en spam, configura SPF y DKIM del dominio remitente.
+
+### Plantillas de correo
+`src/lib/mail-layout.ts` renderiza todos los correos con el mismo diseño de la web (fondo oscuro, tarjeta, botón verde, wordmark APEX) usando tablas y estilos en línea para que funcione en Gmail y Outlook, más una versión en texto plano. El símbolo viaja como adjunto embebido (`cid:`), desde `assets/mail/apex-symbol.png`, para no depender de imágenes remotas que los clientes bloquean. Los textos viven en `src/lib/mail-templates.ts`. Hoy se envían dos: el enlace de restablecimiento y el aviso de contraseña cambiada.
+
+## Puerto
+El API escucha en `PORT` (4000 por defecto; el 5000 queda libre para otros proyectos). El frontend lo toma de `NEXT_PUBLIC_API_URL`.
