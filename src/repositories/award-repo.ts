@@ -8,6 +8,7 @@ interface CreateAwardData {
   points: number;
   reason?: string;
   idempotencyKey: string;
+  occurredAt?: Date;
 }
 
 export interface AwardHistoryRow {
@@ -49,6 +50,7 @@ class AwardRepo {
         points: data.points,
         reason: data.reason ?? null,
         idempotency_key: data.idempotencyKey,
+        ...(data.occurredAt ? { occurred_at: data.occurredAt } : {}),
       })
       .onConflict('idempotency_key')
       .ignore()
@@ -72,6 +74,17 @@ class AwardRepo {
       .sum<{ total: string | null }>('points as total')
       .first();
     return Number(row?.total ?? 0);
+  }
+
+  public static async totalsForStudents(studentIds: string[]): Promise<Map<string, number>> {
+    if (studentIds.length === 0) return new Map();
+    const rows = await database('polipoint_awards')
+      .whereIn('student_id', studentIds)
+      .whereNull('revoked_at')
+      .groupBy('student_id')
+      .select<{ studentId: string; total: string }[]>('student_id as studentId')
+      .sum('points as total');
+    return new Map(rows.map((row) => [row.studentId, Number(row.total)]));
   }
 
   public static async totalsByOffering(studentId: string): Promise<OfferingTotalRow[]> {
@@ -102,13 +115,13 @@ class AwardRepo {
       .join('offerings', 'offerings.id', 'polipoint_awards.offering_id')
       .join('users', 'users.id', 'polipoint_awards.teacher_id')
       .where('polipoint_awards.student_id', studentId)
-      .orderBy('polipoint_awards.created_at', 'desc')
+      .orderBy('polipoint_awards.occurred_at', 'desc')
       .limit(200)
       .select(
         'polipoint_awards.id as id',
         'polipoint_awards.points as points',
         'polipoint_awards.reason as reason',
-        'polipoint_awards.created_at as createdAt',
+        'polipoint_awards.occurred_at as createdAt',
         'polipoint_awards.revoked_at as revokedAt',
         'offerings.course_code as courseCode',
         'offerings.course_name as courseName',

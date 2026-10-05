@@ -26,6 +26,19 @@ class EnrollmentRepo {
       .select<{ id: string }[]>('offerings.id');
     return rows.map((row) => row.id);
   }
+
+  public static async rosterForTeacher(teacherId: string) {
+    return database('enrollments')
+      .join('offerings', 'offerings.id', 'enrollments.offering_id')
+      .join('users', 'users.id', 'enrollments.student_id')
+      .where({ 'offerings.teacher_id': teacherId, 'offerings.active': true })
+      .select<{ studentId: string; fullName: string; cedula: string; offeringId: string }[]>(
+        'users.id as studentId',
+        'users.full_name as fullName',
+        'users.cedula as cedula',
+        'offerings.id as offeringId',
+      );
+  }
 }
 
 export default EnrollmentRepo;

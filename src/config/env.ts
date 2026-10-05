@@ -13,6 +13,7 @@ const envSchema = z.object({
   REFRESH_TOKEN_TTL_DAYS: z.coerce.number().default(7),
   COOKIE_SAME_SITE: z.enum(['lax', 'strict', 'none']).default('lax'),
   MAX_POINTS_PER_AWARD: z.coerce.number().int().positive().default(1000),
+  OFFLINE_AWARD_MAX_AGE_DAYS: z.coerce.number().int().positive().default(7),
 });
 
 const parsed = envSchema.parse(process.env);

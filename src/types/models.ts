@@ -52,6 +52,7 @@ export interface PolipointAward {
   reason: string | null;
   idempotency_key: string;
   created_at: Date;
+  occurred_at: Date;
   revoked_at: Date | null;
   revoked_by: string | null;
   revoke_reason: string | null;

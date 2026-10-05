@@ -1,6 +1,7 @@
 import request from 'supertest';
 import server from '../server';
 import database from '../lib/database';
+import { resetDatabase } from './reset-database';
 import { hashPassword } from '../lib/hash';
 import { normalizeName } from '../lib/normalize';
 
@@ -20,6 +21,7 @@ describe('polipuntos api', () => {
   let adminToken: string;
 
   beforeAll(async () => {
+    await resetDatabase();
     await database('users').insert({
       cedula: '1000000000',
       full_name: 'Super Admin',

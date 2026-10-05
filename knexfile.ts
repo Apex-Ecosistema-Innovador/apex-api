@@ -1,9 +1,9 @@
-import 'dotenv/config';
 import type { Knex } from 'knex';
+import { buildConnection } from './src/lib/connection';
 
 const config: Knex.Config = {
   client: 'pg',
-  connection: process.env.DATABASE_URL,
+  connection: buildConnection(),
   migrations: { directory: './migrations', extension: 'ts' },
   seeds: { directory: './seeds', extension: 'ts' },
 };

@@ -1,9 +1,9 @@
 import knex from 'knex';
-import { env } from '../config/env';
+import { buildConnection } from './connection';
 
 const database = knex({
   client: 'pg',
-  connection: env.DATABASE_URL,
+  connection: buildConnection(),
   pool: { min: 0, max: 10 },
 });
 

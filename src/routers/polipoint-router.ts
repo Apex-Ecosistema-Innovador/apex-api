@@ -14,6 +14,8 @@ function polipointRouter() {
   router.post('/me/qr/rotate', requireRoles([Role.Student]), PolipointController.rotateQr);
   router.post('/scan', requireRoles([Role.Teacher]), awardLimiter, PolipointController.scan);
   router.post('/awards', requireRoles([Role.Teacher]), awardLimiter, PolipointController.award);
+  router.post('/awards/batch', requireRoles([Role.Teacher]), awardLimiter, PolipointController.awardBatch);
+  router.get('/roster', requireRoles([Role.Teacher]), PolipointController.roster);
   router.post(
     '/awards/:id/revoke',
     requireRoles([Role.Teacher, Role.Admin, Role.SuperAdmin]),

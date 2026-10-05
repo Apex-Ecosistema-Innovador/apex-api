@@ -22,6 +22,8 @@ export const Errors = {
   InvalidQr: { status: HttpStatus.BadRequest, message: 'El código QR no es válido' },
   AwardNotFound: { status: HttpStatus.NotFound, message: 'Registro de polipuntos no encontrado' },
   AwardAlreadyRevoked: { status: HttpStatus.Conflict, message: 'Estos polipuntos ya fueron revertidos' },
+  AwardTooOld: { status: HttpStatus.BadRequest, message: 'La fecha del registro es demasiado antigua' },
+  AwardInFuture: { status: HttpStatus.BadRequest, message: 'La fecha del registro es inválida' },
   PointsOutOfRange: { status: HttpStatus.BadRequest, message: 'Cantidad de polipuntos fuera de rango' },
   RouteNotFound: { status: HttpStatus.NotFound, message: 'Ruta no encontrada' },
   Internal: { status: HttpStatus.InternalServerError, message: 'Error interno del servidor' },
