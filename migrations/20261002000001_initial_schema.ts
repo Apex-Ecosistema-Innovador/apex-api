@@ -9,7 +9,7 @@ export async function up(knex: Knex): Promise<void> {
     table.string('cedula', 20).notNullable().unique();
     table.string('full_name', 150).notNullable();
     table.string('full_name_search', 150).notNullable();
-    table.string('email', 150).nullable();
+    table.string('email', 254).nullable().unique();
     table.string('password_hash').notNullable();
     table
       .enu('role', ['student', 'teacher', 'admin', 'super_admin'], { useNative: true, enumName: 'user_role' })
@@ -78,6 +78,16 @@ export async function up(knex: Knex): Promise<void> {
     table.timestamp('created_at', { useTz: true }).notNullable().defaultTo(knex.fn.now());
   });
 
+  await knex.schema.createTable('password_reset_tokens', (table) => {
+    table.uuid('id').primary().defaultTo(knex.raw('gen_random_uuid()'));
+    table.uuid('user_id').notNullable().references('id').inTable('users').onDelete('CASCADE');
+    table.string('token_hash', 64).notNullable().unique();
+    table.timestamp('expires_at', { useTz: true }).notNullable();
+    table.timestamp('used_at', { useTz: true }).nullable();
+    table.timestamp('created_at', { useTz: true }).notNullable().defaultTo(knex.fn.now());
+    table.index(['user_id', 'created_at']);
+  });
+
   await knex.schema.createTable('refresh_tokens', (table) => {
     table.uuid('id').primary().defaultTo(knex.raw('gen_random_uuid()'));
     table.uuid('user_id').notNullable().references('id').inTable('users').onDelete('CASCADE');
@@ -95,6 +105,7 @@ export async function up(knex: Knex): Promise<void> {
 
 export async function down(knex: Knex): Promise<void> {
   await knex.schema.dropTableIfExists('refresh_tokens');
+  await knex.schema.dropTableIfExists('password_reset_tokens');
   await knex.schema.dropTableIfExists('teacher_invites');
   await knex.schema.dropTableIfExists('polipoint_awards');
   await knex.schema.dropTableIfExists('enrollments');
