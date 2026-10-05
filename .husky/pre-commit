@@ -1,0 +1,18 @@
+echo "🏗️ Ejecutando lint, typecheck y build antes del commit..."
+
+pnpm run lint || {
+  echo "❌ ESLint encontró errores o advertencias. Commit cancelado."
+  exit 1
+}
+
+pnpm run typecheck || {
+  echo "❌ Falló el typecheck. Commit cancelado."
+  exit 1
+}
+
+pnpm run build || {
+  echo "❌ Falló la compilación. Commit cancelado."
+  exit 1
+}
+
+echo "✅ Todo en orden. Commit permitido."

@@ -67,3 +67,12 @@ Se usa SMTP (`SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASSWOR
 
 ## Puerto
 El API escucha en `PORT` (4000 por defecto; el 5000 queda libre para otros proyectos). El frontend lo toma de `NEXT_PUBLIC_API_URL`.
+
+## Calidad antes de cada commit
+Husky ejecuta `.husky/pre-commit`: `lint` (sin advertencias), `typecheck` y `build`. Si falla alguno, el commit se cancela. Los tests no se incluyen en el hook porque requieren la base de datos en Docker; correlos con `pnpm test`.
+
+## Pendientes
+- **CI/CD con GitHub Actions** (aún no): workflow que corra lint, typecheck, build y tests (con Postgres como servicio) en cada push y pull request, y despliegue a producción.
+- Registro de eventos de seguridad (IP, dispositivo) y aviso de contraseña cambiada con esos datos.
+- Sesiones activas por dispositivo y verificación adicional (2FA, passkeys).
+- Documentación OpenAPI.
