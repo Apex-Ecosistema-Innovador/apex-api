@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import BaseController from './base-controller';
-import AuthService, { Session } from '../services/auth-service';
+import AuthService from '../services/auth-service';
 import HttpStatus from '../types/enums/http-status';
 import { Successes } from '../constants/responses';
 import { validate } from '../validators/validate';
@@ -13,6 +13,7 @@ import {
   resetPasswordSchema,
 } from '../validators/auth-validator';
 import { clearRefreshCookie, REFRESH_COOKIE, setRefreshCookie } from '../lib/refresh-cookie';
+import { Session } from '../types/auth';
 
 const respondWithSession = (res: Response, session: Session, statusCode: HttpStatus, message: string) => {
   setRefreshCookie(res, session.refreshToken);

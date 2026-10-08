@@ -1,38 +1,7 @@
 import Database from '../lib/database';
 import { PolipointAward } from '../types/models';
 import AwardSource from '../types/enums/award-source';
-
-interface CreateAwardData {
-  studentId: string;
-  offeringId: string;
-  teacherId: string;
-  points: number;
-  reason?: string;
-  idempotencyKey: string;
-  occurredAt?: Date;
-  source?: AwardSource;
-}
-
-export interface AwardHistoryRow {
-  id: string;
-  points: number;
-  reason: string | null;
-  createdAt: Date;
-  revokedAt: Date | null;
-  courseCode: string;
-  courseName: string;
-  term: string;
-  teacherName: string;
-}
-
-export interface OfferingTotalRow {
-  offeringId: string;
-  courseCode: string;
-  courseName: string;
-  term: string;
-  teacherName: string;
-  points: number;
-}
+import { AwardHistoryRow, CreateAwardData, OfferingTotalRow } from '../types/repositories';
 
 const AWARD_COLUMNS = `
   id,

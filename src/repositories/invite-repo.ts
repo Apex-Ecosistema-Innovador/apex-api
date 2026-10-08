@@ -1,12 +1,6 @@
-import Database, { Queryable } from '../lib/database';
-
-interface Invite {
-  id: string;
-  code: string;
-  createdBy: string;
-  usedBy: string | null;
-  expiresAt: Date;
-}
+import Database from '../lib/database';
+import { Queryable } from '../types/database';
+import { Invite } from '../types/repositories';
 
 const INVITE_COLUMNS = `
   id,

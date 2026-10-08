@@ -35,7 +35,3 @@ export const changePasswordSchema = z.object({
   currentPassword: z.string().min(1).max(100),
   newPassword: passwordSchema,
 });
-
-export type RegisterStudentInput = z.output<typeof registerStudentSchema>;
-export type RegisterTeacherInput = z.output<typeof registerTeacherSchema>;
-export type LoginInput = z.output<typeof loginSchema>;

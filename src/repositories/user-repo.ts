@@ -1,17 +1,9 @@
-import Database, { Queryable } from '../lib/database';
+import Database from '../lib/database';
 import { User } from '../types/models';
 import Role from '../types/enums/roles';
 import UserStatus from '../types/enums/user-status';
-
-interface CreateUserData {
-  cedula: string;
-  fullName: string;
-  fullNameSearch: string;
-  email?: string;
-  passwordHash: string;
-  role: Role;
-  status: UserStatus;
-}
+import { Queryable } from '../types/database';
+import { CreateUserData } from '../types/repositories';
 
 const USER_COLUMNS = `
   id,
@@ -97,15 +89,15 @@ class UserRepo {
   }
 
   public static async listByRole(role: Role, status: UserStatus | undefined, page: number, limit: number) {
-    const filters = `WHERE role = $1 AND ($2::text IS NULL OR status = $2)`;
+    const LIST_FILTERS = `WHERE role = $1 AND ($2::text IS NULL OR status = $2)`;
     const rowsQuery = `
       SELECT ${USER_COLUMNS}
       FROM users
-      ${filters}
+      ${LIST_FILTERS}
       ORDER BY created_at DESC
       LIMIT $3 OFFSET $4
     `;
-    const countQuery = `SELECT count(*)::int AS total FROM users ${filters}`;
+    const countQuery = `SELECT count(*)::int AS total FROM users ${LIST_FILTERS}`;
 
     const [rows, totals] = await Promise.all([
       Database.query<User>(rowsQuery, [role, status ?? null, limit, (page - 1) * limit], {

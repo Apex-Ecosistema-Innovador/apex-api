@@ -1,5 +1,5 @@
-import { emailAttachments, EmailContent, renderEmail, renderPlainText } from './mail-layout';
-import { MailMessage } from './mailer';
+import { emailAttachments, renderEmail, renderPlainText } from './mail-layout';
+import { EmailContent, MailMessage, PasswordChangedTemplate, PasswordResetTemplate } from '../types/mail';
 
 const build = (to: string, subject: string, content: EmailContent): MailMessage => ({
   to,
@@ -10,13 +10,6 @@ const build = (to: string, subject: string, content: EmailContent): MailMessage 
 });
 
 const firstNameOf = (fullName: string) => fullName.trim().split(/\s+/)[0] ?? '';
-
-interface PasswordResetTemplate {
-  to: string;
-  fullName: string;
-  link: string;
-  ttlMinutes: number;
-}
 
 export function passwordResetMessage({ to, fullName, link, ttlMinutes }: PasswordResetTemplate): MailMessage {
   return build(to, 'Restablece tu contraseña de APEX Polipuntos', {
@@ -29,13 +22,6 @@ export function passwordResetMessage({ to, fullName, link, ttlMinutes }: Passwor
     action: { label: 'Crear nueva contraseña', url: link },
     notes: ['Si no fuiste tú, ignora este mensaje: tu contraseña no cambiará.'],
   });
-}
-
-interface PasswordChangedTemplate {
-  to: string;
-  fullName: string;
-  recoveryUrl: string;
-  changedAt: Date;
 }
 
 const formatChangedAt = (date: Date) =>

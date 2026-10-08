@@ -8,7 +8,7 @@ import EnrollmentRepo from '../repositories/enrollment-repo';
 import InviteRepo from '../repositories/invite-repo';
 import { hashPassword, verifyPassword } from '../lib/hash';
 import { signAccessToken } from '../lib/jwt';
-import { mailer, MailMessage } from '../lib/mailer';
+import { mailer } from '../lib/mailer';
 import { passwordChangedMessage, passwordResetMessage } from '../lib/mail-templates';
 import PasswordResetRepo from '../repositories/password-reset-repo';
 import { generateRefreshToken, hashRefreshToken } from '../lib/refresh-token';
@@ -18,13 +18,9 @@ import { normalizeName } from '../lib/normalize';
 import Role from '../types/enums/roles';
 import UserStatus from '../types/enums/user-status';
 import { PublicUser, User } from '../types/models';
-import { LoginInput, RegisterStudentInput, RegisterTeacherInput } from '../validators/auth-validator';
-
-export interface Session {
-  user: PublicUser;
-  accessToken: string;
-  refreshToken: string;
-}
+import { Session } from '../types/auth';
+import type { LoginInput, RegisterStudentInput, RegisterTeacherInput } from '../types/inputs';
+import { MailMessage } from '../types/mail';
 
 const uniqueViolation = (error: unknown) => {
   const { code, constraint } = error as { code?: string; constraint?: string };

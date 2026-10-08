@@ -9,5 +9,3 @@ export const studentsQuerySchema = paginationSchema.extend({
   sort: z.enum(['name', 'cedula', 'points']).default('name'),
   order: z.enum(['asc', 'desc']).default('asc'),
 });
-
-export type StudentsQuery = z.output<typeof studentsQuerySchema>;

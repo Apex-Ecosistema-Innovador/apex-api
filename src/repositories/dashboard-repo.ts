@@ -1,25 +1,28 @@
 import Database from '../lib/database';
-import { StudentsQuery } from '../validators/dashboard-validator';
 import { escapeLike, normalizeName } from '../lib/normalize';
+import type { StudentsQuery } from '../types/inputs';
+import { DashboardRow } from '../types/repositories';
 
-export interface DashboardRow {
-  studentId: string;
-  fullName: string;
-  cedula: string;
-  offeringId: string;
-  courseCode: string;
-  courseName: string;
-  term: string;
-  points: number;
-}
-
-const SORT_EXPRESSIONS = {
-  name: 'users.full_name_search',
-  cedula: 'users.cedula',
-  points: 'points',
+const ORDER_BY = {
+  'name:asc': 'ORDER BY users.full_name_search ASC, users.cedula ASC',
+  'name:desc': 'ORDER BY users.full_name_search DESC, users.cedula ASC',
+  'cedula:asc': 'ORDER BY users.cedula ASC',
+  'cedula:desc': 'ORDER BY users.cedula DESC',
+  'points:asc': 'ORDER BY points ASC, users.cedula ASC',
+  'points:desc': 'ORDER BY points DESC, users.cedula ASC',
 } as const;
 
-const SORT_DIRECTIONS = { asc: 'ASC', desc: 'DESC' } as const;
+const ROWS_SELECT = `
+  SELECT
+    users.id AS "studentId",
+    users.full_name AS "fullName",
+    users.cedula AS cedula,
+    offerings.id AS "offeringId",
+    offerings.course_code AS "courseCode",
+    offerings.course_name AS "courseName",
+    offerings.term AS term,
+    COALESCE(sum(polipoint_awards.points), 0)::int AS points
+`;
 
 const FILTERED_ENROLLMENTS = `
   FROM enrollments
@@ -42,7 +45,7 @@ const FILTERED_ENROLLMENTS = `
 `;
 
 class DashboardRepo {
-  public static async students(teacherId: string, filters: StudentsQuery, paginate = true) {
+  public static async students(teacherId: string, filters: StudentsQuery) {
     const digits = filters.q?.replace(/\D/g, '') ?? '';
     const parameters = [
       teacherId,
@@ -53,25 +56,15 @@ class DashboardRepo {
       filters.maxPoints ?? null,
     ];
 
-    const sort = SORT_EXPRESSIONS[filters.sort];
-    const direction = SORT_DIRECTIONS[filters.order];
     const rowsQuery = `
-      SELECT
-        users.id AS "studentId",
-        users.full_name AS "fullName",
-        users.cedula AS cedula,
-        offerings.id AS "offeringId",
-        offerings.course_code AS "courseCode",
-        offerings.course_name AS "courseName",
-        offerings.term AS term,
-        COALESCE(sum(polipoint_awards.points), 0)::int AS points
+      ${ROWS_SELECT}
       ${FILTERED_ENROLLMENTS}
-      ORDER BY ${sort} ${direction}, users.cedula ASC
-      ${paginate ? 'LIMIT $7 OFFSET $8' : ''}
+      ${ORDER_BY[`${filters.sort}:${filters.order}`]}
+      LIMIT $7 OFFSET $8
     `;
     const countQuery = `SELECT count(*)::int AS total FROM (SELECT enrollments.id ${FILTERED_ENROLLMENTS}) AS filtered`;
 
-    const rowParameters = paginate ? [...parameters, filters.limit, (filters.page - 1) * filters.limit] : parameters;
+    const rowParameters = [...parameters, filters.limit, (filters.page - 1) * filters.limit];
 
     const [rows, totals] = await Promise.all([
       Database.query<DashboardRow>(rowsQuery, rowParameters, { queryId: 'DashboardRepo.students' }),

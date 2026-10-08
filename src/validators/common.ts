@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { env } from '../config/env';
+import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from '../constants/pagination';
 import { normalizeCedula } from '../lib/normalize';
 
 export const cedulaSchema = z
@@ -21,8 +22,8 @@ export const passwordSchema = z.string().min(8, 'Mínimo 8 caracteres').max(100)
 export const uuidSchema = z.string().uuid();
 
 export const paginationSchema = z.object({
-  page: z.coerce.number().int().min(1).default(1),
-  limit: z.coerce.number().int().min(1).max(100).default(20),
+  page: z.coerce.number().int().min(1).max(100000).default(1),
+  limit: z.coerce.number().int().min(1).max(MAX_PAGE_SIZE).default(DEFAULT_PAGE_SIZE),
 });
 
 export const institutionalEmailSchema = z

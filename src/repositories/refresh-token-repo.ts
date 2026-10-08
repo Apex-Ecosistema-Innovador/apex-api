@@ -1,12 +1,6 @@
 import Database from '../lib/database';
 import { RefreshToken } from '../types/models';
-
-interface CreateRefreshTokenData {
-  userId: string;
-  familyId: string;
-  tokenHash: string;
-  expiresAt: Date;
-}
+import { CreateRefreshTokenData } from '../types/repositories';
 
 const TOKEN_COLUMNS = `
   id,

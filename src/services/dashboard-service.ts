@@ -6,7 +6,8 @@ import UserRepo from '../repositories/user-repo';
 import AwardRepo from '../repositories/award-repo';
 import EnrollmentRepo from '../repositories/enrollment-repo';
 import AuthService from './auth-service';
-import { StudentsQuery } from '../validators/dashboard-validator';
+import { MAX_EXPORT_ROWS } from '../constants/pagination';
+import type { StudentsQuery } from '../types/inputs';
 
 const BOM = String.fromCharCode(0xfeff);
 
@@ -18,7 +19,7 @@ class DashboardService {
   }
 
   public static async exportCsv(teacherId: string, query: StudentsQuery): Promise<string> {
-    const { rows } = await DashboardRepo.students(teacherId, query, false);
+    const { rows } = await DashboardRepo.students(teacherId, { ...query, page: 1, limit: MAX_EXPORT_ROWS });
     const header = ['Nombre', 'Cédula', 'Asignatura', 'Código', 'Periodo', 'Polipuntos'];
     const lines = rows.map((row) =>
       [row.fullName, row.cedula, row.courseName, row.courseCode, row.term, row.points].map(csvCell).join(','),

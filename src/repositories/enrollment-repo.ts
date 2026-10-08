@@ -1,11 +1,6 @@
-import Database, { Queryable } from '../lib/database';
-
-export interface RosterRow {
-  studentId: string;
-  fullName: string;
-  cedula: string;
-  offeringId: string;
-}
+import Database from '../lib/database';
+import { Queryable } from '../types/database';
+import { RosterRow } from '../types/repositories';
 
 class EnrollmentRepo {
   public static async exists(studentId: string, offeringId: string): Promise<boolean> {

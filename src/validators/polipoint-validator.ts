@@ -35,6 +35,3 @@ export const batchAwardsSchema = z.object({
 export const revokeAwardSchema = z.object({
   reason: z.string().trim().max(255).optional(),
 });
-
-export type OfflineAwardInput = z.output<typeof offlineAwardSchema>;
-export type CreateAwardInput = z.output<typeof createAwardSchema>;

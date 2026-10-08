@@ -1,11 +1,6 @@
 import jwt from 'jsonwebtoken';
 import { env } from '../config/env';
-
-interface QrPayload {
-  sub: string;
-  v: number;
-  typ: 'qr';
-}
+import { QrPayload } from '../types/auth';
 
 export function signQrToken(userId: string, version: number): string {
   return jwt.sign({ v: version, typ: 'qr' }, env.QR_SECRET, { subject: userId });

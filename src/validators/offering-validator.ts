@@ -32,6 +32,3 @@ export const publicOfferingsQuerySchema = z.object({
 export const enrollmentSchema = z.object({
   offeringId: uuidSchema,
 });
-
-export type CreateOfferingInput = z.output<typeof createOfferingSchema>;
-export type UpdateOfferingInput = z.output<typeof updateOfferingSchema>;

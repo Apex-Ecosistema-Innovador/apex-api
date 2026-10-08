@@ -1,19 +1,6 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
-import { MailAttachment } from './mailer';
-
-export interface EmailAction {
-  label: string;
-  url: string;
-}
-
-export interface EmailContent {
-  preheader: string;
-  title: string;
-  paragraphs: string[];
-  action?: EmailAction;
-  notes?: string[];
-}
+import { EmailAction, EmailContent, MailAttachment } from '../types/mail';
 
 const LOGO_CID = 'apex-symbol';
 

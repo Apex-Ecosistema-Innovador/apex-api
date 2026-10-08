@@ -1,4 +1,5 @@
 import CustomError from '../types/custom-error';
+import { PolipointAward } from '../types/models';
 import { Errors } from '../constants/responses';
 import UserRepo from '../repositories/user-repo';
 import OfferingRepo from '../repositories/offering-repo';
@@ -10,17 +11,9 @@ import Role from '../types/enums/roles';
 import AwardSource from '../types/enums/award-source';
 import { env } from '../config/env';
 import { validate } from '../validators/validate';
-import { CreateAwardInput, OfflineAwardInput, offlineAwardSchema } from '../validators/polipoint-validator';
-
-type PolipointAwardRow = Awaited<ReturnType<typeof AwardRepo.findById>> & object;
-
-type BatchStatus = 'created' | 'duplicate' | 'rejected';
-
-interface BatchResult {
-  idempotencyKey: string;
-  status: BatchStatus;
-  error?: string;
-}
+import { offlineAwardSchema } from '../validators/polipoint-validator';
+import type { CreateAwardInput, OfflineAwardInput } from '../types/inputs';
+import { BatchResult, BatchStatus } from '../types/polipoints';
 
 const CLOCK_SKEW_MS = 5 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -96,7 +89,7 @@ class PolipointService {
   private static async persistAward(
     teacherId: string,
     input: CreateAwardInput & { occurredAt?: Date },
-  ): Promise<{ award: PolipointAwardRow; created: boolean }> {
+  ): Promise<{ award: PolipointAward; created: boolean }> {
     const existing = await AwardRepo.findByKey(input.idempotencyKey);
     if (existing) {
       if (existing.teacherId !== teacherId) {

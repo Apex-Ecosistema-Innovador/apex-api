@@ -1,11 +1,7 @@
 import jwt, { SignOptions } from 'jsonwebtoken';
 import { env } from '../config/env';
 import Role from '../types/enums/roles';
-
-interface SessionPayload {
-  sub: string;
-  role: Role;
-}
+import { SessionPayload } from '../types/auth';
 
 export function signAccessToken(userId: string, role: Role): string {
   return jwt.sign({ role }, env.JWT_ACCESS_SECRET, {

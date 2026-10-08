@@ -16,5 +16,3 @@ export const createAdminSchema = z.object({
   email: institutionalEmailSchema,
   password: passwordSchema,
 });
-
-export type CreateAdminInput = z.output<typeof createAdminSchema>;

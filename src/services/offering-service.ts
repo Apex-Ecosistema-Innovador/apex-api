@@ -1,7 +1,7 @@
 import CustomError from '../types/custom-error';
 import { Errors } from '../constants/responses';
 import OfferingRepo from '../repositories/offering-repo';
-import { CreateOfferingInput, UpdateOfferingInput } from '../validators/offering-validator';
+import type { CreateOfferingInput, UpdateOfferingInput } from '../types/inputs';
 
 const isUniqueViolation = (error: unknown) => (error as { code?: string })?.code === '23505';
 

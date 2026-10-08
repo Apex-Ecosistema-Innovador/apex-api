@@ -8,7 +8,7 @@ import { hashPassword } from '../lib/hash';
 import { normalizeName } from '../lib/normalize';
 import Role from '../types/enums/roles';
 import UserStatus from '../types/enums/user-status';
-import { CreateAdminInput } from '../validators/admin-validator';
+import type { CreateAdminInput } from '../types/inputs';
 
 class AdminService {
   public static async listTeachers(status: UserStatus | undefined, page: number, limit: number) {
