@@ -4,7 +4,7 @@ import OfferingService from '../services/offering-service';
 import HttpStatus from '../types/enums/http-status';
 import { Successes } from '../constants/responses';
 import { validate } from '../validators/validate';
-import { uuidSchema } from '../validators/common';
+import { paginationSchema, uuidSchema } from '../validators/common';
 import {
   createOfferingSchema,
   publicOfferingsQuerySchema,
@@ -13,12 +13,15 @@ import {
 
 class OfferingController {
   public static async listPublic(req: Request, res: Response) {
-    const { q } = validate(publicOfferingsQuerySchema, req.query);
-    BaseController.handleSuccess(res, { payload: await OfferingService.listPublic(q) });
+    const query = validate(publicOfferingsQuerySchema, req.query);
+    const { rows, total } = await OfferingService.listPublic(query);
+    BaseController.handleSuccess(res, { payload: rows, total, page: query.page, limit: query.limit });
   }
 
   public static async listMine(req: Request, res: Response) {
-    BaseController.handleSuccess(res, { payload: await OfferingService.listMine(req.auth!.userId) });
+    const query = validate(paginationSchema, req.query);
+    const { rows, total } = await OfferingService.listMine(req.auth!.userId, query);
+    BaseController.handleSuccess(res, { payload: rows, total, page: query.page, limit: query.limit });
   }
 
   public static async create(req: Request, res: Response) {

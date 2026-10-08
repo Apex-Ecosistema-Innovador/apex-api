@@ -12,7 +12,7 @@ import AwardSource from '../types/enums/award-source';
 import { env } from '../config/env';
 import { validate } from '../validators/validate';
 import { offlineAwardSchema } from '../validators/polipoint-validator';
-import type { CreateAwardInput, OfflineAwardInput } from '../types/inputs';
+import type { CreateAwardInput, OfflineAwardInput, PageQuery } from '../types/inputs';
 import { BatchResult, BatchStatus } from '../types/polipoints';
 
 const CLOCK_SKEW_MS = 5 * 60 * 1000;
@@ -61,10 +61,10 @@ class PolipointService {
     return { student: AuthService.toPublicUser(student), offerings, total };
   }
 
-  public static async roster(teacherId: string) {
-    const [offerings, rows] = await Promise.all([
+  public static async roster(teacherId: string, { page, limit }: PageQuery) {
+    const [offerings, { rows, total }] = await Promise.all([
       OfferingRepo.listByTeacher(teacherId),
-      EnrollmentRepo.rosterForTeacher(teacherId),
+      EnrollmentRepo.rosterForTeacher(teacherId, page, limit),
     ]);
     const students = new Map<string, { id: string; fullName: string; cedula: string; offeringIds: string[] }>();
     rows.forEach((row) => {
@@ -80,9 +80,12 @@ class PolipointService {
     const totals = await AwardRepo.totalsForStudents([...students.keys()]);
 
     return {
-      offerings: offerings.filter((offering) => offering.active),
-      students: [...students.values()].map((student) => ({ ...student, total: totals.get(student.id) ?? 0 })),
-      generatedAt: new Date().toISOString(),
+      roster: {
+        offerings: offerings.filter((offering) => offering.active),
+        students: [...students.values()].map((student) => ({ ...student, total: totals.get(student.id) ?? 0 })),
+        generatedAt: new Date().toISOString(),
+      },
+      total,
     };
   }
 
@@ -172,13 +175,13 @@ class PolipointService {
     return AwardRepo.revoke(awardId, actorId, reason);
   }
 
-  public static async mySummary(studentId: string) {
+  public static async mySummary(studentId: string, { page, limit }: PageQuery) {
     const [total, offerings, history] = await Promise.all([
       AwardRepo.totalForStudent(studentId),
       AwardRepo.totalsByOffering(studentId),
-      AwardRepo.history(studentId),
+      AwardRepo.history(studentId, { page, limit }),
     ]);
-    return { total, offerings, history };
+    return { summary: { total, offerings, history: history.rows, historyTotal: history.total }, total: history.total };
   }
 }
 

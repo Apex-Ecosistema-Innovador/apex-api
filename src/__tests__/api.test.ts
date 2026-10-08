@@ -186,6 +186,55 @@ describe('polipuntos api', () => {
       .query({ offeringId: o2.body.payload.id });
     expect(byOffering.body.payload[0].points).toBe(0);
 
+    const pagedPublic = await api.get(`${base}/offerings/public`).query({ page: 2, limit: 3 });
+    expect(pagedPublic.body.payload).toHaveLength(1);
+    expect(pagedPublic.body).toMatchObject({ total: 4, page: 2, limit: 3 });
+
+    const pagedMine = await api.get(`${base}/offerings/mine`).set(bearer(teacherToken)).query({ limit: 2 });
+    expect(pagedMine.body.payload).toHaveLength(2);
+    expect(pagedMine.body.total).toBe(3);
+
+    const pagedMyEnrollments = await api
+      .get(`${base}/enrollments/mine`)
+      .set(bearer(studentToken))
+      .query({ page: 1, limit: 1 });
+    expect(pagedMyEnrollments.body.payload).toHaveLength(1);
+    expect(pagedMyEnrollments.body.total).toBeGreaterThan(1);
+
+    const pagedHistory = await api.get(`${base}/polipoints/me`).set(bearer(studentToken)).query({ limit: 1 });
+    expect(pagedHistory.body.payload.history).toHaveLength(1);
+    expect(pagedHistory.body.payload.historyTotal).toBeGreaterThan(1);
+
+    const pagedDetail = await api
+      .get(`${base}/teacher/students/${studentId}`)
+      .set(bearer(teacherToken))
+      .query({ limit: 1 });
+    expect(pagedDetail.body.payload.history).toHaveLength(1);
+    expect(pagedDetail.body.payload.historyTotal).toBeGreaterThanOrEqual(1);
+
+    const pagedRoster = await api.get(`${base}/polipoints/roster`).set(bearer(teacherToken)).query({ limit: 1 });
+    expect(pagedRoster.body.total).toBeGreaterThan(1);
+    expect(pagedRoster.body.payload.students).toHaveLength(1);
+
+    const hostileLimits = [
+      { path: `${base}/offerings/public`, query: { limit: 101 } },
+      { path: `${base}/offerings/public`, query: { limit: 0 } },
+      { path: `${base}/offerings/public`, query: { page: 0 } },
+      { path: `${base}/offerings/public`, query: { limit: '999999999' } },
+      { path: `${base}/offerings/mine`, query: { limit: 101 }, token: teacherToken },
+      { path: `${base}/enrollments/mine`, query: { limit: 101 }, token: studentToken },
+      { path: `${base}/polipoints/roster`, query: { limit: 101 }, token: teacherToken },
+      { path: `${base}/polipoints/me`, query: { limit: 101 }, token: studentToken },
+      { path: `${base}/teacher/students`, query: { limit: 101 }, token: teacherToken },
+      { path: `${base}/teacher/students/${studentId}`, query: { limit: 101 }, token: teacherToken },
+      { path: `${base}/teacher/students/export`, query: { limit: 5001 }, token: teacherToken },
+    ];
+    for (const { path, query, token } of hostileLimits) {
+      const request = api.get(path).query(query);
+      const response = await (token ? request.set(bearer(token)) : request);
+      expect([path, response.status]).toEqual([path, 400]);
+    }
+
     const csv = await api.get(`${base}/teacher/students/export`).set(bearer(teacherToken));
     expect(csv.text).toContain('1234567890');
 

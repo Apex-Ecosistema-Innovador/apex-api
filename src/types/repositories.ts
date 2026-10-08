@@ -76,3 +76,15 @@ export interface OfferingTotalRow {
   teacherName: string;
   points: number;
 }
+
+export interface PageResult<T> {
+  rows: T[];
+  total: number;
+}
+
+export interface HistoryFilters {
+  offeringId?: string;
+  teacherId?: string;
+  page: number;
+  limit: number;
+}

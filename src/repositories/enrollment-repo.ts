@@ -1,6 +1,13 @@
 import Database from '../lib/database';
 import { Queryable } from '../types/database';
-import { RosterRow } from '../types/repositories';
+import { PageResult, RosterRow } from '../types/repositories';
+
+const ROSTER_FILTERS = `
+  FROM enrollments
+  JOIN offerings ON offerings.id = enrollments.offering_id
+  JOIN users ON users.id = enrollments.student_id
+  WHERE offerings.teacher_id = $1 AND offerings.active = true
+`;
 
 class EnrollmentRepo {
   public static async exists(studentId: string, offeringId: string): Promise<boolean> {
@@ -39,19 +46,27 @@ class EnrollmentRepo {
     return rows.map((row) => row.id);
   }
 
-  public static async rosterForTeacher(teacherId: string): Promise<RosterRow[]> {
-    const query = `
+  public static async rosterForTeacher(teacherId: string, page: number, limit: number): Promise<PageResult<RosterRow>> {
+    const rowsQuery = `
       SELECT
         users.id AS "studentId",
         users.full_name AS "fullName",
         users.cedula AS cedula,
         offerings.id AS "offeringId"
-      FROM enrollments
-      JOIN offerings ON offerings.id = enrollments.offering_id
-      JOIN users ON users.id = enrollments.student_id
-      WHERE offerings.teacher_id = $1 AND offerings.active = true
+      ${ROSTER_FILTERS}
+      ORDER BY users.cedula, offerings.id
+      LIMIT $2 OFFSET $3
     `;
-    return Database.query<RosterRow>(query, [teacherId], { queryId: 'EnrollmentRepo.rosterForTeacher' });
+    const countQuery = `SELECT count(*)::int AS total ${ROSTER_FILTERS}`;
+    const [rows, totals] = await Promise.all([
+      Database.query<RosterRow>(rowsQuery, [teacherId, limit, (page - 1) * limit], {
+        queryId: 'EnrollmentRepo.rosterForTeacher',
+      }),
+      Database.query<{ total: number }>(countQuery, [teacherId], {
+        queryId: 'EnrollmentRepo.rosterForTeacher.count',
+      }),
+    ]);
+    return { rows, total: totals[0].total };
   }
 }
 

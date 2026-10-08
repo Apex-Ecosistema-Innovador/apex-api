@@ -1,24 +1,23 @@
 import CustomError from '../types/custom-error';
 import { Errors } from '../constants/responses';
 import OfferingRepo from '../repositories/offering-repo';
-import type { CreateOfferingInput, UpdateOfferingInput } from '../types/inputs';
+import type { CreateOfferingInput, PageQuery, PublicOfferingsQuery, UpdateOfferingInput } from '../types/inputs';
 
 const isUniqueViolation = (error: unknown) => (error as { code?: string })?.code === '23505';
 
 class OfferingService {
-  public static listPublic(search?: string) {
-    return OfferingRepo.listPublic(search);
+  public static listPublic({ q, page, limit }: PublicOfferingsQuery) {
+    return OfferingRepo.listPublic(q, page, limit);
   }
 
-  public static listMine(teacherId: string) {
-    return OfferingRepo.listByTeacher(teacherId);
+  public static listMine(teacherId: string, { page, limit }: PageQuery) {
+    return OfferingRepo.pageByTeacher(teacherId, page, limit);
   }
 
   public static async create(teacherId: string, input: CreateOfferingInput) {
     try {
       const offering = await OfferingRepo.create(teacherId, input);
-      const [publicOffering] = (await OfferingRepo.listByTeacher(teacherId)).filter((item) => item.id === offering.id);
-      return publicOffering;
+      return await OfferingRepo.findPublicById(offering.id);
     } catch (error) {
       if (isUniqueViolation(error)) throw new CustomError(Errors.OfferingTaken.status, Errors.OfferingTaken.message);
       throw error;
@@ -31,8 +30,7 @@ class OfferingService {
       throw new CustomError(Errors.OfferingNotFound.status, Errors.OfferingNotFound.message);
     }
     await OfferingRepo.update(id, input);
-    const offerings = await OfferingRepo.listByTeacher(teacherId);
-    return offerings.find((item) => item.id === id);
+    return OfferingRepo.findPublicById(id);
   }
 }
 

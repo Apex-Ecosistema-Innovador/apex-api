@@ -3,10 +3,11 @@ import { Errors } from '../constants/responses';
 import OfferingRepo from '../repositories/offering-repo';
 import EnrollmentRepo from '../repositories/enrollment-repo';
 import AwardRepo from '../repositories/award-repo';
+import type { PageQuery } from '../types/inputs';
 
 class EnrollmentService {
-  public static listMine(studentId: string) {
-    return OfferingRepo.listByStudent(studentId);
+  public static listMine(studentId: string, { page, limit }: PageQuery) {
+    return OfferingRepo.listByStudent(studentId, page, limit);
   }
 
   public static async enroll(studentId: string, offeringId: string) {
@@ -23,8 +24,7 @@ class EnrollmentService {
     if (!(await EnrollmentRepo.exists(studentId, offeringId))) {
       throw new CustomError(Errors.NotEnrolled.status, Errors.NotEnrolled.message);
     }
-    const history = await AwardRepo.history(studentId, offeringId);
-    if (history.some((award) => !award.revokedAt)) {
+    if (await AwardRepo.hasActiveAwards(studentId, offeringId)) {
       throw new CustomError(Errors.EnrollmentHasPoints.status, Errors.EnrollmentHasPoints.message);
     }
     await EnrollmentRepo.remove(studentId, offeringId);

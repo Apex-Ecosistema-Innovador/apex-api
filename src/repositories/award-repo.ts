@@ -1,7 +1,7 @@
 import Database from '../lib/database';
 import { PolipointAward } from '../types/models';
 import AwardSource from '../types/enums/award-source';
-import { AwardHistoryRow, CreateAwardData, OfferingTotalRow } from '../types/repositories';
+import { AwardHistoryRow, CreateAwardData, HistoryFilters, OfferingTotalRow, PageResult } from '../types/repositories';
 
 const AWARD_COLUMNS = `
   id,
@@ -17,6 +17,15 @@ const AWARD_COLUMNS = `
   revoked_at AS "revokedAt",
   revoked_by AS "revokedBy",
   revoke_reason AS "revokeReason"
+`;
+
+const HISTORY_FILTERS = `
+  FROM polipoint_awards
+  JOIN offerings ON offerings.id = polipoint_awards.offering_id
+  JOIN users ON users.id = polipoint_awards.teacher_id
+  WHERE polipoint_awards.student_id = $1
+    AND ($2::uuid IS NULL OR polipoint_awards.offering_id = $2)
+    AND ($3::uuid IS NULL OR polipoint_awards.teacher_id = $3)
 `;
 
 class AwardRepo {
@@ -114,8 +123,9 @@ class AwardRepo {
     return Database.query<OfferingTotalRow>(query, [studentId], { queryId: 'AwardRepo.totalsByOffering' });
   }
 
-  public static async history(studentId: string, offeringId?: string, teacherId?: string): Promise<AwardHistoryRow[]> {
-    const query = `
+  public static async history(studentId: string, filters: HistoryFilters): Promise<PageResult<AwardHistoryRow>> {
+    const parameters = [studentId, filters.offeringId ?? null, filters.teacherId ?? null];
+    const rowsQuery = `
       SELECT
         polipoint_awards.id AS id,
         polipoint_awards.points AS points,
@@ -126,18 +136,31 @@ class AwardRepo {
         offerings.course_name AS "courseName",
         offerings.term AS term,
         users.full_name AS "teacherName"
-      FROM polipoint_awards
-      JOIN offerings ON offerings.id = polipoint_awards.offering_id
-      JOIN users ON users.id = polipoint_awards.teacher_id
-      WHERE polipoint_awards.student_id = $1
-        AND ($2::uuid IS NULL OR polipoint_awards.offering_id = $2)
-        AND ($3::uuid IS NULL OR polipoint_awards.teacher_id = $3)
-      ORDER BY polipoint_awards.occurred_at DESC
-      LIMIT 200
+      ${HISTORY_FILTERS}
+      ORDER BY polipoint_awards.occurred_at DESC, polipoint_awards.id
+      LIMIT $4 OFFSET $5
     `;
-    return Database.query<AwardHistoryRow>(query, [studentId, offeringId ?? null, teacherId ?? null], {
-      queryId: 'AwardRepo.history',
+    const countQuery = `SELECT count(*)::int AS total ${HISTORY_FILTERS}`;
+    const [rows, totals] = await Promise.all([
+      Database.query<AwardHistoryRow>(rowsQuery, [...parameters, filters.limit, (filters.page - 1) * filters.limit], {
+        queryId: 'AwardRepo.history',
+      }),
+      Database.query<{ total: number }>(countQuery, parameters, { queryId: 'AwardRepo.history.count' }),
+    ]);
+    return { rows, total: totals[0].total };
+  }
+
+  public static async hasActiveAwards(studentId: string, offeringId: string): Promise<boolean> {
+    const query = `
+      SELECT 1 AS found
+      FROM polipoint_awards
+      WHERE student_id = $1 AND offering_id = $2 AND revoked_at IS NULL
+      LIMIT 1
+    `;
+    const rows = await Database.query<{ found: number }>(query, [studentId, offeringId], {
+      queryId: 'AwardRepo.hasActiveAwards',
     });
+    return rows.length > 0;
   }
 }
 

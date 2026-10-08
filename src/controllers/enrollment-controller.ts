@@ -4,12 +4,14 @@ import EnrollmentService from '../services/enrollment-service';
 import HttpStatus from '../types/enums/http-status';
 import { Successes } from '../constants/responses';
 import { validate } from '../validators/validate';
-import { uuidSchema } from '../validators/common';
+import { paginationSchema, uuidSchema } from '../validators/common';
 import { enrollmentSchema } from '../validators/offering-validator';
 
 class EnrollmentController {
   public static async listMine(req: Request, res: Response) {
-    BaseController.handleSuccess(res, { payload: await EnrollmentService.listMine(req.auth!.userId) });
+    const query = validate(paginationSchema, req.query);
+    const { rows, total } = await EnrollmentService.listMine(req.auth!.userId, query);
+    BaseController.handleSuccess(res, { payload: rows, total, page: query.page, limit: query.limit });
   }
 
   public static async enroll(req: Request, res: Response) {

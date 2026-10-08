@@ -4,7 +4,7 @@ import PolipointService from '../services/polipoint-service';
 import HttpStatus from '../types/enums/http-status';
 import { Successes } from '../constants/responses';
 import { validate } from '../validators/validate';
-import { uuidSchema } from '../validators/common';
+import { paginationSchema, uuidSchema } from '../validators/common';
 import { batchAwardsSchema, createAwardSchema, revokeAwardSchema, scanSchema } from '../validators/polipoint-validator';
 
 class PolipointController {
@@ -39,7 +39,9 @@ class PolipointController {
   }
 
   public static async roster(req: Request, res: Response) {
-    BaseController.handleSuccess(res, { payload: await PolipointService.roster(req.auth!.userId) });
+    const query = validate(paginationSchema, req.query);
+    const { roster, total } = await PolipointService.roster(req.auth!.userId, query);
+    BaseController.handleSuccess(res, { payload: roster, total, page: query.page, limit: query.limit });
   }
 
   public static async revoke(req: Request, res: Response) {
@@ -54,7 +56,9 @@ class PolipointController {
   }
 
   public static async mySummary(req: Request, res: Response) {
-    BaseController.handleSuccess(res, { payload: await PolipointService.mySummary(req.auth!.userId) });
+    const query = validate(paginationSchema, req.query);
+    const { summary, total } = await PolipointService.mySummary(req.auth!.userId, query);
+    BaseController.handleSuccess(res, { payload: summary, total, page: query.page, limit: query.limit });
   }
 }
 

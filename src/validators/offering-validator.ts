@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { uuidSchema } from './common';
+import { paginationSchema, uuidSchema } from './common';
 
 export const courseCodeSchema = z
   .string()
@@ -25,7 +25,7 @@ export const updateOfferingSchema = z.object({
   active: z.boolean().optional(),
 });
 
-export const publicOfferingsQuerySchema = z.object({
+export const publicOfferingsQuerySchema = paginationSchema.extend({
   q: z.string().trim().max(100).optional(),
 });
 
