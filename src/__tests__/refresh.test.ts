@@ -1,10 +1,8 @@
 import request from 'supertest';
 import server from '../server';
-import database from '../lib/database';
-import { hashPassword } from '../lib/hash';
-import { normalizeName } from '../lib/normalize';
+import Database from '../lib/database';
 import { hashRefreshToken } from '../lib/refresh-token';
-import { resetDatabase } from './reset-database';
+import { insertUser, resetDatabase } from './reset-database';
 
 const api = request(server.app);
 const base = '/api/v1';
@@ -33,36 +31,20 @@ describe('refresh token rotation', () => {
 
   beforeAll(async () => {
     await resetDatabase();
-    const insert = async (cedula: string, role: string) =>
-      (
-        await database('users')
-          .insert({
-            cedula,
-            full_name: `Usuario ${cedula}`,
-            full_name_search: normalizeName(`Usuario ${cedula}`),
-            password_hash: await hashPassword('password123'),
-            role,
-            status: 'active',
-          })
-          .returning('id')
-      )[0].id as string;
-
-    await insert('1000000002', 'super_admin');
-    teacherId = await insert('5000000009', 'teacher');
-    await insert('6000000009', 'student');
+    await insertUser('1000000002', 'Usuario 1000000002', 'super_admin');
+    teacherId = await insertUser('5000000009', 'Usuario 5000000009', 'teacher');
+    await insertUser('6000000009', 'Usuario 6000000009', 'student');
     adminAccess = (await login('1000000002')).access;
   });
 
   afterAll(async () => {
-    await database.destroy();
+    await Database.close();
   });
 
   it('stores only a hash and issues an opaque token', async () => {
     const { token } = await login('6000000009');
     expect(token.split('.')).toHaveLength(1);
-    const row = await database('refresh_tokens')
-      .where({ token_hash: hashRefreshToken(token) })
-      .first();
+    const [row] = await Database.query('SELECT * FROM refresh_tokens WHERE token_hash = $1', [hashRefreshToken(token)]);
     expect(row).toBeDefined();
     expect(JSON.stringify(row)).not.toContain(token);
   });
@@ -76,7 +58,10 @@ describe('refresh token rotation', () => {
     expect(second).not.toBe(first.token);
     expect((await refresh(second)).status).toBe(200);
 
-    const rows = await database('refresh_tokens').whereIn('token_hash', [first.token, second].map(hashRefreshToken));
+    const rows = await Database.query<{ family_id: string }>(
+      'SELECT family_id FROM refresh_tokens WHERE token_hash = ANY($1::text[])',
+      [[first.token, second].map(hashRefreshToken)],
+    );
     expect(new Set(rows.map((row) => row.family_id)).size).toBe(1);
   });
 
@@ -90,9 +75,10 @@ describe('refresh token rotation', () => {
     const { token } = await login('6000000009');
     const rotated = refreshCookie(await refresh(token));
 
-    await database('refresh_tokens')
-      .where({ token_hash: hashRefreshToken(token) })
-      .update({ used_at: new Date(Date.now() - 60_000) });
+    await Database.execute('UPDATE refresh_tokens SET used_at = $2 WHERE token_hash = $1', [
+      hashRefreshToken(token),
+      new Date(Date.now() - 60_000),
+    ]);
 
     expect((await refresh(token)).status).toBe(401);
     expect((await refresh(rotated)).status).toBe(401);
@@ -110,9 +96,10 @@ describe('refresh token rotation', () => {
 
   it('rejects expired, unknown and missing tokens', async () => {
     const { token } = await login('6000000009');
-    await database('refresh_tokens')
-      .where({ token_hash: hashRefreshToken(token) })
-      .update({ expires_at: new Date(Date.now() - 1000) });
+    await Database.execute('UPDATE refresh_tokens SET expires_at = $2 WHERE token_hash = $1', [
+      hashRefreshToken(token),
+      new Date(Date.now() - 1000),
+    ]);
 
     expect((await refresh(token)).status).toBe(401);
     expect((await refresh('unknown-token')).status).toBe(401);

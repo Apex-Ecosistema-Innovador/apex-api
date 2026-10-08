@@ -1,9 +1,7 @@
 import request from 'supertest';
 import server from '../server';
-import database from '../lib/database';
-import { resetDatabase } from './reset-database';
-import { hashPassword } from '../lib/hash';
-import { normalizeName } from '../lib/normalize';
+import Database from '../lib/database';
+import { insertUser, resetDatabase } from './reset-database';
 import { buildConnection } from '../lib/connection';
 
 const api = request(server.app);
@@ -20,14 +18,7 @@ describe('offline awards and roster', () => {
 
   beforeAll(async () => {
     await resetDatabase();
-    await database('users').insert({
-      cedula: '1000000001',
-      full_name: 'Admin Offline',
-      full_name_search: normalizeName('Admin Offline'),
-      password_hash: await hashPassword('password123'),
-      role: 'super_admin',
-      status: 'active',
-    });
+    await insertUser('1000000001', 'Admin Offline', 'super_admin');
     const login = await api.post(`${base}/auth/login`).send({ cedula: '1000000001', password: 'password123' });
     const adminToken = login.body.payload.accessToken;
 
@@ -63,7 +54,7 @@ describe('offline awards and roster', () => {
   });
 
   afterAll(async () => {
-    await database.destroy();
+    await Database.close();
   });
 
   it('syncs queued awards idempotently and reports rejections per item', async () => {
@@ -136,7 +127,9 @@ describe('offline awards and roster', () => {
   });
 
   it('accepts manual awards by student id and records their source', async () => {
-    const studentId = (await database('users').where({ cedula: '6000000001' }).first()).id;
+    const studentId = (
+      await Database.query<{ id: string }>('SELECT id FROM users WHERE cedula = $1', ['6000000001'])
+    )[0].id;
     const manual = (overrides: Record<string, unknown>) => ({
       studentId,
       offeringId,
@@ -171,10 +164,15 @@ describe('offline awards and roster', () => {
     });
     expect(direct.status).toBe(201);
 
-    const sources = await database('polipoint_awards')
-      .whereIn('idempotency_key', ['manual-key-0001', 'manual-key-0004', 'offline-key-0001'])
-      .select('idempotency_key', 'source')
-      .orderBy('idempotency_key');
+    const sources = await Database.query<{ source: string }>(
+      `
+        SELECT source
+        FROM polipoint_awards
+        WHERE idempotency_key = ANY($1::text[])
+        ORDER BY idempotency_key
+      `,
+      [['manual-key-0001', 'manual-key-0004', 'offline-key-0001']],
+    );
     expect(sources.map((row) => row.source)).toEqual(['manual', 'manual', 'qr']);
   });
 

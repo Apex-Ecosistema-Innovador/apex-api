@@ -1,4 +1,4 @@
-import database from '../lib/database';
+import Database, { Queryable } from '../lib/database';
 import { User } from '../types/models';
 import Role from '../types/enums/roles';
 import UserStatus from '../types/enums/user-status';
@@ -13,66 +13,108 @@ interface CreateUserData {
   status: UserStatus;
 }
 
+const USER_COLUMNS = `
+  id,
+  cedula,
+  full_name AS "fullName",
+  full_name_search AS "fullNameSearch",
+  email,
+  password_hash AS "passwordHash",
+  role,
+  status,
+  qr_token_version AS "qrTokenVersion",
+  created_at AS "createdAt",
+  updated_at AS "updatedAt"
+`;
+
 class UserRepo {
   public static async findById(id: string): Promise<User | undefined> {
-    return database<User>('users').where({ id }).first();
+    const query = `SELECT ${USER_COLUMNS} FROM users WHERE id = $1`;
+    const rows = await Database.query<User>(query, [id], { queryId: 'UserRepo.findById' });
+    return rows[0];
   }
 
   public static async findByCedula(cedula: string): Promise<User | undefined> {
-    return database<User>('users').where({ cedula }).first();
+    const query = `SELECT ${USER_COLUMNS} FROM users WHERE cedula = $1`;
+    const rows = await Database.query<User>(query, [cedula], { queryId: 'UserRepo.findByCedula' });
+    return rows[0];
   }
 
   public static async findByEmail(email: string): Promise<User | undefined> {
-    return database<User>('users').where({ email: email.toLowerCase() }).first();
+    const query = `SELECT ${USER_COLUMNS} FROM users WHERE email = $1`;
+    const rows = await Database.query<User>(query, [email.toLowerCase()], { queryId: 'UserRepo.findByEmail' });
+    return rows[0];
   }
 
   public static async updatePassword(id: string, passwordHash: string): Promise<void> {
-    await database<User>('users').where({ id }).update({ password_hash: passwordHash, updated_at: database.fn.now() });
+    const query = `
+      UPDATE users
+      SET password_hash = $2, updated_at = now()
+      WHERE id = $1
+    `;
+    await Database.execute(query, [id, passwordHash], { queryId: 'UserRepo.updatePassword' });
   }
 
-  public static async create(data: CreateUserData, trx = database): Promise<User> {
-    const [user] = await trx<User>('users')
-      .insert({
-        cedula: data.cedula,
-        full_name: data.fullName,
-        full_name_search: data.fullNameSearch,
-        email: data.email ?? null,
-        password_hash: data.passwordHash,
-        role: data.role,
-        status: data.status,
-      })
-      .returning('*');
-    return user;
+  public static async create(data: CreateUserData, executor: Queryable = Database): Promise<User> {
+    const query = `
+      INSERT INTO users (cedula, full_name, full_name_search, email, password_hash, role, status)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      RETURNING ${USER_COLUMNS}
+    `;
+    const parameters = [
+      data.cedula,
+      data.fullName,
+      data.fullNameSearch,
+      data.email ?? null,
+      data.passwordHash,
+      data.role,
+      data.status,
+    ];
+    const rows = await executor.query<User>(query, parameters, { queryId: 'UserRepo.create' });
+    return rows[0];
   }
 
   public static async updateStatus(id: string, status: UserStatus): Promise<User | undefined> {
-    const [user] = await database<User>('users')
-      .where({ id })
-      .update({ status, updated_at: database.fn.now() })
-      .returning('*');
-    return user;
+    const query = `
+      UPDATE users
+      SET status = $2, updated_at = now()
+      WHERE id = $1
+      RETURNING ${USER_COLUMNS}
+    `;
+    const rows = await Database.query<User>(query, [id, status], { queryId: 'UserRepo.updateStatus' });
+    return rows[0];
   }
 
   public static async incrementQrVersion(id: string): Promise<User> {
-    const [user] = await database<User>('users')
-      .where({ id })
-      .update({ qr_token_version: database.raw('qr_token_version + 1'), updated_at: database.fn.now() })
-      .returning('*');
-    return user;
+    const query = `
+      UPDATE users
+      SET qr_token_version = qr_token_version + 1, updated_at = now()
+      WHERE id = $1
+      RETURNING ${USER_COLUMNS}
+    `;
+    const rows = await Database.query<User>(query, [id], { queryId: 'UserRepo.incrementQrVersion' });
+    return rows[0];
   }
 
   public static async listByRole(role: Role, status: UserStatus | undefined, page: number, limit: number) {
-    const query = database<User>('users').where({ role });
-    if (status) query.where({ status });
+    const filters = `WHERE role = $1 AND ($2::text IS NULL OR status = $2)`;
+    const rowsQuery = `
+      SELECT ${USER_COLUMNS}
+      FROM users
+      ${filters}
+      ORDER BY created_at DESC
+      LIMIT $3 OFFSET $4
+    `;
+    const countQuery = `SELECT count(*)::int AS total FROM users ${filters}`;
 
-    const [{ count }] = await query.clone().count<{ count: string }[]>('id as count');
-    const rows = await query
-      .clone()
-      .orderBy('created_at', 'desc')
-      .limit(limit)
-      .offset((page - 1) * limit);
+    const [rows, totals] = await Promise.all([
+      Database.query<User>(rowsQuery, [role, status ?? null, limit, (page - 1) * limit], {
+        queryId: 'UserRepo.listByRole',
+      }),
+      Database.query<{ total: number }>(countQuery, [role, status ?? null], { queryId: 'UserRepo.listByRole.count' }),
+    ]);
 
-    return { rows, total: Number(count) };
+    return { rows, total: totals[0].total };
   }
 }
 

@@ -1,5 +1,5 @@
 import { randomBytes, randomUUID } from 'crypto';
-import database from '../lib/database';
+import Database from '../lib/database';
 import CustomError from '../types/custom-error';
 import { Errors } from '../constants/responses';
 import UserRepo from '../repositories/user-repo';
@@ -39,7 +39,7 @@ class AuthService {
     return {
       id: user.id,
       cedula: user.cedula,
-      fullName: user.full_name,
+      fullName: user.fullName,
       email: user.email,
       role: user.role,
       status: user.status,
@@ -84,7 +84,7 @@ class AuthService {
     const passwordHash = await hashPassword(input.password);
 
     try {
-      const user = await database.transaction(async (trx) => {
+      const user = await Database.transaction(async (trx) => {
         const created = await UserRepo.create(
           {
             cedula: input.cedula,
@@ -110,7 +110,7 @@ class AuthService {
     const passwordHash = await hashPassword(input.password);
 
     try {
-      const user = await database.transaction(async (trx) => {
+      const user = await Database.transaction(async (trx) => {
         if (input.inviteCode && !(await InviteRepo.isValid(input.inviteCode, trx))) {
           throw new CustomError(Errors.InvalidInvite.status, Errors.InvalidInvite.message);
         }
@@ -146,7 +146,7 @@ class AuthService {
 
   public static async login(input: LoginInput): Promise<Session> {
     const user = await UserRepo.findByCedula(input.cedula);
-    const valid = user ? await verifyPassword(user.password_hash, input.password) : false;
+    const valid = user ? await verifyPassword(user.passwordHash, input.password) : false;
 
     if (!user || !valid) {
       throw new CustomError(Errors.InvalidCredentials.status, Errors.InvalidCredentials.message);
@@ -164,31 +164,31 @@ class AuthService {
     if (!refreshToken) throw AuthService.unauthenticated();
 
     const stored = await RefreshTokenRepo.findByHash(hashRefreshToken(refreshToken));
-    if (!stored || stored.revoked_at || stored.expires_at.getTime() <= Date.now()) {
+    if (!stored || stored.revokedAt || stored.expiresAt.getTime() <= Date.now()) {
       throw AuthService.unauthenticated();
     }
 
     const claimed = await RefreshTokenRepo.markUsed(stored.id);
     if (!claimed) {
-      const latest = (await RefreshTokenRepo.findByHash(stored.token_hash)) ?? stored;
-      const graceEnds = (latest.used_at?.getTime() ?? 0) + env.REFRESH_REUSE_GRACE_SECONDS * 1000;
-      if (latest.revoked_at || Date.now() > graceEnds) {
-        await RefreshTokenRepo.revokeFamily(stored.family_id);
+      const latest = (await RefreshTokenRepo.findByHash(stored.tokenHash)) ?? stored;
+      const graceEnds = (latest.usedAt?.getTime() ?? 0) + env.REFRESH_REUSE_GRACE_SECONDS * 1000;
+      if (latest.revokedAt || Date.now() > graceEnds) {
+        await RefreshTokenRepo.revokeFamily(stored.familyId);
         throw AuthService.unauthenticated();
       }
     }
 
-    const user = await UserRepo.findById(stored.user_id);
+    const user = await UserRepo.findById(stored.userId);
     if (!user) throw AuthService.unauthenticated();
 
     AuthService.assertCanSignIn(user);
-    return AuthService.buildSession(user, stored.family_id);
+    return AuthService.buildSession(user, stored.familyId);
   }
 
   public static async logout(refreshToken: string | undefined): Promise<void> {
     if (!refreshToken) return;
     const stored = await RefreshTokenRepo.findByHash(hashRefreshToken(refreshToken));
-    if (stored) await RefreshTokenRepo.revokeFamily(stored.family_id);
+    if (stored) await RefreshTokenRepo.revokeFamily(stored.familyId);
   }
 
   private static webUrl(path: string): string {
@@ -206,7 +206,7 @@ class AuthService {
     AuthService.dispatch(
       passwordChangedMessage({
         to: user.email,
-        fullName: user.full_name,
+        fullName: user.fullName,
         recoveryUrl: AuthService.webUrl('/recuperar-contrasena'),
         changedAt: new Date(),
       }),
@@ -218,7 +218,7 @@ class AuthService {
     if (!user) return;
 
     const latest = await PasswordResetRepo.latestForUser(user.id);
-    if (latest && Date.now() - latest.created_at.getTime() < env.PASSWORD_RESET_COOLDOWN_SECONDS * 1000) return;
+    if (latest && Date.now() - latest.createdAt.getTime() < env.PASSWORD_RESET_COOLDOWN_SECONDS * 1000) return;
 
     await PasswordResetRepo.invalidateForUser(user.id);
     const token = generateRefreshToken();
@@ -231,7 +231,7 @@ class AuthService {
     AuthService.dispatch(
       passwordResetMessage({
         to: user.email!,
-        fullName: user.full_name,
+        fullName: user.fullName,
         link: AuthService.webUrl(`/restablecer-contrasena#token=${token}`),
         ttlMinutes: env.PASSWORD_RESET_TTL_MINUTES,
       }),
@@ -244,11 +244,11 @@ class AuthService {
       throw new CustomError(Errors.InvalidResetToken.status, Errors.InvalidResetToken.message);
     }
 
-    await UserRepo.updatePassword(stored.user_id, await hashPassword(newPassword));
-    await PasswordResetRepo.invalidateForUser(stored.user_id);
-    await RefreshTokenRepo.revokeAllForUser(stored.user_id);
+    await UserRepo.updatePassword(stored.userId, await hashPassword(newPassword));
+    await PasswordResetRepo.invalidateForUser(stored.userId);
+    await RefreshTokenRepo.revokeAllForUser(stored.userId);
 
-    const user = await UserRepo.findById(stored.user_id);
+    const user = await UserRepo.findById(stored.userId);
     if (user) AuthService.notifyPasswordChanged(user);
   }
 
@@ -256,7 +256,7 @@ class AuthService {
     const user = await UserRepo.findById(userId);
     if (!user) throw new CustomError(Errors.UserNotFound.status, Errors.UserNotFound.message);
 
-    if (!(await verifyPassword(user.password_hash, currentPassword))) {
+    if (!(await verifyPassword(user.passwordHash, currentPassword))) {
       throw new CustomError(Errors.WrongPassword.status, Errors.WrongPassword.message);
     }
     if (currentPassword === newPassword) {

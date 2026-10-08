@@ -3,7 +3,7 @@ import { buildConnection } from './src/lib/connection';
 
 const config: Knex.Config = {
   client: 'pg',
-  connection: buildConnection(),
+  connection: buildConnection() as Knex.PgConnectionConfig,
   migrations: { directory: './migrations', extension: 'ts' },
   seeds: { directory: './seeds', extension: 'ts' },
 };

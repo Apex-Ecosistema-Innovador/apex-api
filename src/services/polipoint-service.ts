@@ -29,12 +29,12 @@ class PolipointService {
   public static async getQr(userId: string) {
     const user = await UserRepo.findById(userId);
     if (!user) throw new CustomError(Errors.UserNotFound.status, Errors.UserNotFound.message);
-    return { token: signQrToken(user.id, user.qr_token_version) };
+    return { token: signQrToken(user.id, user.qrTokenVersion) };
   }
 
   public static async rotateQr(userId: string) {
     const user = await UserRepo.incrementQrVersion(userId);
-    return { token: signQrToken(user.id, user.qr_token_version) };
+    return { token: signQrToken(user.id, user.qrTokenVersion) };
   }
 
   private static async resolveStudent(token: string) {
@@ -42,7 +42,7 @@ class PolipointService {
     if (!decoded) throw new CustomError(Errors.InvalidQr.status, Errors.InvalidQr.message);
 
     const student = await UserRepo.findById(decoded.userId);
-    if (!student || student.role !== Role.Student || student.qr_token_version !== decoded.version) {
+    if (!student || student.role !== Role.Student || student.qrTokenVersion !== decoded.version) {
       throw new CustomError(Errors.InvalidQr.status, Errors.InvalidQr.message);
     }
     return student;
@@ -99,14 +99,14 @@ class PolipointService {
   ): Promise<{ award: PolipointAwardRow; created: boolean }> {
     const existing = await AwardRepo.findByKey(input.idempotencyKey);
     if (existing) {
-      if (existing.teacher_id !== teacherId) {
+      if (existing.teacherId !== teacherId) {
         throw new CustomError(Errors.Forbidden.status, Errors.Forbidden.message);
       }
       return { award: existing, created: false };
     }
 
     const offering = await OfferingRepo.findById(input.offeringId);
-    if (!offering || offering.teacher_id !== teacherId) {
+    if (!offering || offering.teacherId !== teacherId) {
       throw new CustomError(Errors.OfferingNotFound.status, Errors.OfferingNotFound.message);
     }
     if (!offering.active) throw new CustomError(Errors.OfferingInactive.status, Errors.OfferingInactive.message);
@@ -171,10 +171,10 @@ class PolipointService {
     const award = await AwardRepo.findById(awardId);
     const isStaff = role === Role.Admin || role === Role.SuperAdmin;
 
-    if (!award || (!isStaff && award.teacher_id !== actorId)) {
+    if (!award || (!isStaff && award.teacherId !== actorId)) {
       throw new CustomError(Errors.AwardNotFound.status, Errors.AwardNotFound.message);
     }
-    if (award.revoked_at) throw new CustomError(Errors.AwardAlreadyRevoked.status, Errors.AwardAlreadyRevoked.message);
+    if (award.revokedAt) throw new CustomError(Errors.AwardAlreadyRevoked.status, Errors.AwardAlreadyRevoked.message);
 
     return AwardRepo.revoke(awardId, actorId, reason);
   }

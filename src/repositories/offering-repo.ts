@@ -1,95 +1,123 @@
-import database from '../lib/database';
+import Database from '../lib/database';
 import { Offering, PublicOffering } from '../types/models';
 import UserStatus from '../types/enums/user-status';
 import { escapeLike } from '../lib/normalize';
 
-interface OfferingRow extends Offering {
-  teacher_name: string;
-}
+const OFFERING_COLUMNS = `
+  offerings.id,
+  offerings.teacher_id AS "teacherId",
+  offerings.course_code AS "courseCode",
+  offerings.course_name AS "courseName",
+  offerings.term,
+  offerings.active,
+  offerings.created_at AS "createdAt"
+`;
 
-const toPublic = (row: OfferingRow): PublicOffering => ({
-  id: row.id,
-  courseCode: row.course_code,
-  courseName: row.course_name,
-  term: row.term,
-  active: row.active,
-  teacher: { id: row.teacher_id, fullName: row.teacher_name },
-});
+const PUBLIC_OFFERING_COLUMNS = `
+  offerings.id,
+  offerings.course_code AS "courseCode",
+  offerings.course_name AS "courseName",
+  offerings.term,
+  offerings.active,
+  json_build_object('id', users.id, 'fullName', users.full_name) AS teacher
+`;
 
 class OfferingRepo {
-  public static toPublic = toPublic;
-
   public static async findById(id: string): Promise<Offering | undefined> {
-    return database<Offering>('offerings').where({ id }).first();
+    const query = `SELECT ${OFFERING_COLUMNS} FROM offerings WHERE offerings.id = $1`;
+    const rows = await Database.query<Offering>(query, [id], { queryId: 'OfferingRepo.findById' });
+    return rows[0];
   }
 
   public static async findByIds(ids: string[]): Promise<Offering[]> {
     if (ids.length === 0) return [];
-    return database<Offering>('offerings').whereIn('id', ids);
+    const query = `SELECT ${OFFERING_COLUMNS} FROM offerings WHERE offerings.id = ANY($1::uuid[])`;
+    return Database.query<Offering>(query, [ids], { queryId: 'OfferingRepo.findByIds' });
   }
 
   public static async create(
     teacherId: string,
     data: { courseCode: string; courseName: string; term: string },
   ): Promise<Offering> {
-    const [offering] = await database<Offering>('offerings')
-      .insert({
-        teacher_id: teacherId,
-        course_code: data.courseCode,
-        course_name: data.courseName,
-        term: data.term,
-      })
-      .returning('*');
-    return offering;
+    const query = `
+      INSERT INTO offerings (teacher_id, course_code, course_name, term)
+      VALUES ($1, $2, $3, $4)
+      RETURNING
+        id,
+        teacher_id AS "teacherId",
+        course_code AS "courseCode",
+        course_name AS "courseName",
+        term,
+        active,
+        created_at AS "createdAt"
+    `;
+    const rows = await Database.query<Offering>(query, [teacherId, data.courseCode, data.courseName, data.term], {
+      queryId: 'OfferingRepo.create',
+    });
+    return rows[0];
   }
 
   public static async update(id: string, data: { courseName?: string; active?: boolean }): Promise<Offering> {
-    const patch: Partial<Offering> = {};
-    if (data.courseName !== undefined) patch.course_name = data.courseName;
-    if (data.active !== undefined) patch.active = data.active;
-    const [offering] = await database<Offering>('offerings').where({ id }).update(patch).returning('*');
-    return offering;
+    const query = `
+      UPDATE offerings
+      SET course_name = COALESCE($2, course_name),
+          active = COALESCE($3, active)
+      WHERE id = $1
+      RETURNING
+        id,
+        teacher_id AS "teacherId",
+        course_code AS "courseCode",
+        course_name AS "courseName",
+        term,
+        active,
+        created_at AS "createdAt"
+    `;
+    const rows = await Database.query<Offering>(query, [id, data.courseName ?? null, data.active ?? null], {
+      queryId: 'OfferingRepo.update',
+    });
+    return rows[0];
   }
 
   public static async listByTeacher(teacherId: string): Promise<PublicOffering[]> {
-    const rows = await database('offerings')
-      .join('users', 'users.id', 'offerings.teacher_id')
-      .where('offerings.teacher_id', teacherId)
-      .orderBy([{ column: 'offerings.term', order: 'desc' }, { column: 'offerings.course_code' }])
-      .select<OfferingRow[]>('offerings.*', 'users.full_name as teacher_name');
-    return rows.map(toPublic);
+    const query = `
+      SELECT ${PUBLIC_OFFERING_COLUMNS}
+      FROM offerings
+      JOIN users ON users.id = offerings.teacher_id
+      WHERE offerings.teacher_id = $1
+      ORDER BY offerings.term DESC, offerings.course_code
+    `;
+    return Database.query<PublicOffering>(query, [teacherId], { queryId: 'OfferingRepo.listByTeacher' });
   }
 
   public static async listPublic(search?: string): Promise<PublicOffering[]> {
-    const query = database('offerings')
-      .join('users', 'users.id', 'offerings.teacher_id')
-      .where('offerings.active', true)
-      .where('users.status', UserStatus.Active)
-      .orderBy([{ column: 'offerings.course_code' }, { column: 'users.full_name' }])
-      .select<OfferingRow[]>('offerings.*', 'users.full_name as teacher_name');
-
-    if (search) {
-      const like = `%${escapeLike(search.toLowerCase())}%`;
-      query.where((builder) =>
-        builder
-          .whereRaw('lower(offerings.course_code) like ?', [like])
-          .orWhereRaw('lower(offerings.course_name) like ?', [like])
-          .orWhere('users.full_name_search', 'like', like),
-      );
-    }
-
-    const rows = await query;
-    return rows.map(toPublic);
+    const like = search ? `%${escapeLike(search.toLowerCase())}%` : null;
+    const query = `
+      SELECT ${PUBLIC_OFFERING_COLUMNS}
+      FROM offerings
+      JOIN users ON users.id = offerings.teacher_id
+      WHERE offerings.active = true
+        AND users.status = $1
+        AND (
+          $2::text IS NULL
+          OR lower(offerings.course_code) LIKE $2
+          OR lower(offerings.course_name) LIKE $2
+          OR users.full_name_search LIKE $2
+        )
+      ORDER BY offerings.course_code, users.full_name
+    `;
+    return Database.query<PublicOffering>(query, [UserStatus.Active, like], { queryId: 'OfferingRepo.listPublic' });
   }
 
   public static async listByStudent(studentId: string): Promise<PublicOffering[]> {
-    const rows = await database('enrollments')
-      .join('offerings', 'offerings.id', 'enrollments.offering_id')
-      .join('users', 'users.id', 'offerings.teacher_id')
-      .where('enrollments.student_id', studentId)
-      .orderBy('offerings.course_code')
-      .select<OfferingRow[]>('offerings.*', 'users.full_name as teacher_name');
-    return rows.map(toPublic);
+    const query = `
+      SELECT ${PUBLIC_OFFERING_COLUMNS}
+      FROM enrollments
+      JOIN offerings ON offerings.id = enrollments.offering_id
+      JOIN users ON users.id = offerings.teacher_id
+      WHERE enrollments.student_id = $1
+      ORDER BY offerings.course_code
+    `;
+    return Database.query<PublicOffering>(query, [studentId], { queryId: 'OfferingRepo.listByStudent' });
   }
 }
 

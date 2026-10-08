@@ -27,7 +27,7 @@ class OfferingService {
 
   public static async update(teacherId: string, id: string, input: UpdateOfferingInput) {
     const offering = await OfferingRepo.findById(id);
-    if (!offering || offering.teacher_id !== teacherId) {
+    if (!offering || offering.teacherId !== teacherId) {
       throw new CustomError(Errors.OfferingNotFound.status, Errors.OfferingNotFound.message);
     }
     await OfferingRepo.update(id, input);

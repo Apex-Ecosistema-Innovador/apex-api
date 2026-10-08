@@ -29,7 +29,7 @@ class AdminService {
   public static async createInvite(adminId: string, expiresInDays: number) {
     const expiresAt = new Date(Date.now() + expiresInDays * 24 * 60 * 60 * 1000);
     const invite = await InviteRepo.create(AuthService.generateInviteCode(), adminId, expiresAt);
-    return { code: invite.code, expiresAt: invite.expires_at };
+    return { code: invite.code, expiresAt: invite.expiresAt };
   }
 
   public static async createAdmin(input: CreateAdminInput) {

@@ -1,9 +1,7 @@
 import request from 'supertest';
 import server from '../server';
-import database from '../lib/database';
-import { resetDatabase } from './reset-database';
-import { hashPassword } from '../lib/hash';
-import { normalizeName } from '../lib/normalize';
+import Database from '../lib/database';
+import { insertUser, resetDatabase } from './reset-database';
 
 const api = request(server.app);
 const base = '/api/v1';
@@ -23,20 +21,13 @@ describe('polipuntos api', () => {
 
   beforeAll(async () => {
     await resetDatabase();
-    await database('users').insert({
-      cedula: '1000000000',
-      full_name: 'Super Admin',
-      full_name_search: normalizeName('Super Admin'),
-      password_hash: await hashPassword('password123'),
-      role: 'super_admin',
-      status: 'active',
-    });
+    await insertUser('1000000000', 'Super Admin', 'super_admin');
     const login = await api.post(`${base}/auth/login`).send({ cedula: '1000000000', password: 'password123' });
     adminToken = login.body.payload.accessToken;
   });
 
   afterAll(async () => {
-    await database.destroy();
+    await Database.close();
   });
 
   it('runs the full teacher and student flow', async () => {
@@ -161,6 +152,33 @@ describe('polipuntos api', () => {
       .query({ q: 'maria jose', minPoints: 10 });
     expect(dashboard.body.total).toBe(1);
     expect(dashboard.body.payload[0]).toMatchObject({ cedula: '1234567890', points: 50 });
+
+    const byCedula = await api.get(`${base}/teacher/students`).set(bearer(teacherToken)).query({ q: '1234567' });
+    expect(byCedula.body.total).toBeGreaterThan(0);
+
+    const capped = await api.get(`${base}/teacher/students`).set(bearer(teacherToken)).query({ maxPoints: 5 });
+    expect(capped.body.payload.every((row: { points: number }) => row.points <= 5)).toBe(true);
+
+    const sorted = await api
+      .get(`${base}/teacher/students`)
+      .set(bearer(teacherToken))
+      .query({ sort: 'points', order: 'desc', limit: 1 });
+    expect(sorted.body.payload).toHaveLength(1);
+    expect(sorted.body.payload[0].points).toBe(50);
+    expect(sorted.body.total).toBeGreaterThan(1);
+
+    const hostile = await api
+      .get(`${base}/teacher/students`)
+      .set(bearer(teacherToken))
+      .query({ q: "'; DROP TABLE users; --" });
+    expect(hostile.status).toBe(200);
+    expect(hostile.body.total).toBe(0);
+
+    const badSort = await api
+      .get(`${base}/teacher/students`)
+      .set(bearer(teacherToken))
+      .query({ sort: 'password_hash' });
+    expect(badSort.status).toBe(400);
 
     const byOffering = await api
       .get(`${base}/teacher/students`)

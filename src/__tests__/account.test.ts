@@ -1,6 +1,6 @@
 import request from 'supertest';
 import server from '../server';
-import database from '../lib/database';
+import Database from '../lib/database';
 import { mailer, MemoryTransport } from '../lib/mailer';
 import { resetDatabase } from './reset-database';
 
@@ -32,7 +32,7 @@ const waitForMail = async (count: number) => {
 const tokenFrom = (message: { text: string }) => message.text.match(/#token=([\w-]+)/)![1];
 
 afterAll(async () => {
-  await database.destroy();
+  await Database.close();
 });
 
 describe('institutional email', () => {
@@ -100,16 +100,16 @@ describe('password recovery and change', () => {
   });
 
   it('stores only a hash of the reset token', async () => {
-    await database('password_reset_tokens').delete();
+    await Database.execute('DELETE FROM password_reset_tokens');
     await api.post(`${base}/auth/forgot-password`).send({ email: 'ana.gomez@elpoli.edu.co' });
     await waitForMail(1);
     const token = tokenFrom(outbox[0]);
-    const rows = await database('password_reset_tokens');
+    const rows = await Database.query('SELECT * FROM password_reset_tokens');
     expect(JSON.stringify(rows)).not.toContain(token);
   });
 
   it('resets the password once, closes every session and invalidates the link', async () => {
-    await database('password_reset_tokens').delete();
+    await Database.execute('DELETE FROM password_reset_tokens');
     const login = await api.post(`${base}/auth/login`).send({ cedula: '9000000001', password: 'password123' });
     const refresh = cookieOf(login);
 
@@ -138,11 +138,11 @@ describe('password recovery and change', () => {
   });
 
   it('rejects expired and unknown reset tokens', async () => {
-    await database('password_reset_tokens').delete();
+    await Database.execute('DELETE FROM password_reset_tokens');
     await api.post(`${base}/auth/forgot-password`).send({ email: 'ana.gomez@elpoli.edu.co' });
     await waitForMail(1);
     const token = tokenFrom(outbox[0]);
-    await database('password_reset_tokens').update({ expires_at: new Date(Date.now() - 1000) });
+    await Database.execute('UPDATE password_reset_tokens SET expires_at = $1', [new Date(Date.now() - 1000)]);
 
     expect((await api.post(`${base}/auth/reset-password`).send({ token, password: 'nueva-clave-2' })).status).toBe(400);
     expect(
@@ -151,7 +151,7 @@ describe('password recovery and change', () => {
   });
 
   it('does not send another email during the cooldown', async () => {
-    await database('password_reset_tokens').delete();
+    await Database.execute('DELETE FROM password_reset_tokens');
     await api.post(`${base}/auth/forgot-password`).send({ email: 'ana.gomez@elpoli.edu.co' });
     await api.post(`${base}/auth/forgot-password`).send({ email: 'ana.gomez@elpoli.edu.co' });
     await waitForMail(1);

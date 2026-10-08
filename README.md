@@ -28,7 +28,7 @@ pnpm dev
 Cada asignación pertenece a una asignatura (offering) de un profesor; los totales por asignatura y global se calculan sobre asignaciones no revertidas. Límite por asignación: `MAX_POINTS_PER_AWARD` (1000 por defecto).
 
 ## Base de datos y SSL
-El cliente (Knex + `pg`) solo depende de `DATABASE_URL`. Para Supabase usa el connection pooler y activa SSL:
+Las consultas se escriben como SQL parametrizado (`$1, $2…`) en los repositorios sobre un `pg.Pool` único (`src/lib/database.ts`); las columnas se mapean a camelCase con `AS` en el propio SQL. Knex se usa solo para migraciones y seeds. La conexión depende de `DATABASE_URL`. Para Supabase usa el connection pooler y activa SSL:
 
 ```
 DATABASE_URL=postgresql://postgres.<ref>:<password>@<host>.pooler.supabase.com:6543/postgres
@@ -36,6 +36,8 @@ DB_SSL=true
 DB_SSL_REJECT_UNAUTHORIZED=true
 DB_SSL_CA=
 ```
+
+`DB_POOL_MAX` (por defecto 10) limita las conexiones del pool; con el pooler de Supabase en modo transacción (puerto 6543) conviene bajarlo, por ejemplo a 5. `DB_POOL_IDLE_TIMEOUT_MS` (30000) cierra las inactivas.
 
 `DB_SSL_CA` acepta el certificado en una línea con `\n` como separador de saltos de línea. En Postgres local déjalo en `false`.
 
