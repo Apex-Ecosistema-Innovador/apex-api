@@ -67,8 +67,27 @@ describe('polipuntos api', () => {
       .send({ courseCode: '001', courseName: 'Duplicado', term: '2026-2' });
     expect(duplicate.status).toBe(409);
 
+    const lowercase = await api
+      .post(`${base}/offerings`)
+      .set(bearer(teacherToken))
+      .send({ courseCode: 'ing004', courseName: 'Ingeniería', term: '2027-1' });
+    expect(lowercase.status).toBe(201);
+    expect(lowercase.body.payload.courseCode).toBe('ING004');
+
+    const dashed = await api
+      .post(`${base}/offerings`)
+      .set(bearer(teacherToken))
+      .send({ courseCode: 'ING-005', courseName: 'Con guion', term: '2026-2' });
+    expect(dashed.status).toBe(400);
+
+    const badTerm = await api
+      .post(`${base}/offerings`)
+      .set(bearer(teacherToken))
+      .send({ courseCode: 'ING006', courseName: 'Periodo malo', term: '2026-3' });
+    expect(badTerm.status).toBe(400);
+
     const publicList = await api.get(`${base}/offerings/public`);
-    expect(publicList.body.payload).toHaveLength(3);
+    expect(publicList.body.payload).toHaveLength(4);
 
     const student = await api.post(`${base}/auth/register/student`).send({
       cedula: '1.234.567.890',

@@ -8,7 +8,13 @@ export const cedulaSchema = z
   .transform(normalizeCedula)
   .refine((value) => value.length >= 5 && value.length <= 12, 'La cédula debe tener entre 5 y 12 dígitos');
 
-export const fullNameSchema = z.string().trim().min(3, 'Ingresa tu nombre').max(150);
+export const fullNameSchema = z
+  .string()
+  .trim()
+  .min(3, 'Ingresa tu nombre')
+  .max(150)
+  .regex(/^[\p{L}][\p{L}\s'.-]*$/u, 'El nombre solo puede tener letras y espacios')
+  .transform((value) => value.replace(/\s+/g, ' '));
 
 export const passwordSchema = z.string().min(8, 'Mínimo 8 caracteres').max(100);
 
