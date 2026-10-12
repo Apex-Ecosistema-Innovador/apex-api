@@ -47,7 +47,14 @@ const button = ({
 </td></tr></table>
 <p style="margin:0 0 24px;font-family:${fonts.body};font-size:13px;line-height:1.6;color:${palette.muted};">Si el botón no funciona, copia este enlace en tu navegador:<br><a href="${escapeHtml(url)}" target="_blank" style="color:${palette.accent};word-break:break-all;">${escapeHtml(url)}</a></p>`;
 
-export function renderEmail({ preheader, title, paragraphs, action, notes = [] }: EmailContent): string {
+export function renderEmail({
+  product = 'Polipuntos',
+  preheader,
+  title,
+  paragraphs,
+  action,
+  notes = [],
+}: EmailContent): string {
   return `<!doctype html>
 <html lang="es">
 <head>
@@ -66,7 +73,7 @@ export function renderEmail({ preheader, title, paragraphs, action, notes = [] }
 <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
 <td style="padding-right:12px;"><img src="cid:${LOGO_CID}" width="40" height="40" alt="" style="display:block;border:0;"></td>
 <td style="font-family:${fonts.display};font-size:26px;font-weight:700;letter-spacing:0.08em;color:${palette.text};">APEX</td>
-<td style="padding-left:10px;font-family:${fonts.mono};font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:${palette.accent};">polipuntos</td>
+<td style="padding-left:10px;font-family:${fonts.mono};font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:${palette.accent};">${escapeHtml(product)}</td>
 </tr></table>
 </td></tr>
 <tr><td bgcolor="${palette.card}" style="background:${palette.card};border:1px solid ${palette.border};border-radius:12px;padding:32px;">
@@ -76,7 +83,7 @@ ${action ? button(action) : ''}
 ${notes.map(note).join('\n')}
 </td></tr>
 <tr><td style="padding:24px 8px 0;font-family:${fonts.body};font-size:12px;line-height:1.6;color:${palette.muted};">
-Mensaje automático de APEX Polipuntos. Semillero SIIC, Politécnico Colombiano Jaime Isaza Cadavid.<br>
+Mensaje automático de APEX ${escapeHtml(product)}. Semillero SIIC, Politécnico Colombiano Jaime Isaza Cadavid.<br>
 No respondas a este correo.
 </td></tr>
 </table>
@@ -86,7 +93,13 @@ No respondas a este correo.
 </html>`;
 }
 
-export function renderPlainText({ title, paragraphs, action, notes = [] }: EmailContent): string {
+export function renderPlainText({
+  product = 'Polipuntos',
+  title,
+  paragraphs,
+  action,
+  notes = [],
+}: EmailContent): string {
   return [
     title,
     '',
@@ -95,7 +108,7 @@ export function renderPlainText({ title, paragraphs, action, notes = [] }: Email
     ...notes,
     '',
     '—',
-    'APEX Polipuntos · Semillero SIIC, Politécnico Colombiano Jaime Isaza Cadavid',
+    `APEX ${product} · Semillero SIIC, Politécnico Colombiano Jaime Isaza Cadavid`,
   ]
     .join('\n')
     .trim();

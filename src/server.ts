@@ -13,6 +13,8 @@ import polipointRouter from './routers/polipoint-router';
 import teacherRouter from './routers/teacher-router';
 import adminRouter from './routers/admin-router';
 import healthRouter from './routers/health-router';
+import eventoRouter from './routers/evento-router';
+import verificacionCorreoRouter from './routers/verificacion-correo-router';
 
 class Server {
   public app: express.Application;
@@ -42,6 +44,8 @@ class Server {
     this.app.use('/api/v1/polipoints', polipointRouter());
     this.app.use('/api/v1/teacher', teacherRouter());
     this.app.use('/api/v1/admin', adminRouter());
+    this.app.use('/api/v1/eventos', eventoRouter());
+    this.app.use('/api/v1/verificacion-correo', verificacionCorreoRouter());
   }
 }
 

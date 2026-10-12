@@ -16,6 +16,23 @@ export const Errors = {
   WrongPassword: { status: HttpStatus.BadRequest, message: 'La contraseña actual no es correcta' },
   SamePassword: { status: HttpStatus.BadRequest, message: 'La nueva contraseña debe ser diferente a la actual' },
   InvalidInvite: { status: HttpStatus.BadRequest, message: 'El código de invitación no es válido o expiró' },
+  EventNotFound: { status: HttpStatus.NotFound, message: 'Evento no encontrado' },
+  RegistrationClosed: {
+    status: HttpStatus.Conflict,
+    message: 'Las inscripciones no están abiertas para este evento',
+  },
+  RulesOutdated: {
+    status: HttpStatus.Conflict,
+    message: 'El reglamento cambió mientras diligenciabas el formulario. Recarga la página y vuelve a aceptarlo',
+  },
+  DataConsentOutdated: {
+    status: HttpStatus.Conflict,
+    message: 'La autorización de tratamiento de datos cambió. Recarga la página y vuelve a aceptarla',
+  },
+  InvalidVerificationToken: {
+    status: HttpStatus.BadRequest,
+    message: 'El enlace de verificación no es válido o expiró. Solicita uno nuevo.',
+  },
   UserNotFound: { status: HttpStatus.NotFound, message: 'Usuario no encontrado' },
   OfferingNotFound: { status: HttpStatus.NotFound, message: 'Asignatura no encontrada' },
   OfferingTaken: { status: HttpStatus.Conflict, message: 'Ya registraste esa asignatura en ese periodo' },
@@ -56,6 +73,10 @@ export const Successes = {
   AdminCreated: 'Administrador creado',
   PasswordResetRequested: 'Si el correo está registrado, te enviamos las instrucciones para restablecer tu contraseña',
   PasswordReset: 'Contraseña actualizada. Ya puedes iniciar sesión',
+  RegistrationCreated: 'Inscripción registrada. Revisa tu correo para verificar tu cuenta',
+  EmailVerified: 'Correo verificado',
+  VerificationResent:
+    'Si el correo está registrado y pendiente de verificar, te enviamos un nuevo enlace de verificación',
   PasswordChanged: 'Contraseña actualizada',
   QrRotated: 'Código QR regenerado',
 } as const;

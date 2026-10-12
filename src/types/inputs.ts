@@ -8,6 +8,7 @@ import type { createAdminSchema } from '../validators/admin-validator';
 import type { offlineAwardSchema, createAwardSchema } from '../validators/polipoint-validator';
 import type { exportQuerySchema, studentsQuerySchema } from '../validators/dashboard-validator';
 import type { paginationSchema } from '../validators/common';
+import type { registroInscripcionSchema } from '../validators/inscripcion-validator';
 import type { registerStudentSchema, registerTeacherSchema, loginSchema } from '../validators/auth-validator';
 
 export type CreateOfferingInput = z.output<typeof createOfferingSchema>;
@@ -22,3 +23,4 @@ export type LoginInput = z.output<typeof loginSchema>;
 export type ExportQuery = z.output<typeof exportQuerySchema>;
 export type PageQuery = z.output<typeof paginationSchema>;
 export type PublicOfferingsQuery = z.output<typeof publicOfferingsQuerySchema>;
+export type RegistroInscripcionInput = z.output<typeof registroInscripcionSchema>;

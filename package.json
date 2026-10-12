@@ -15,6 +15,7 @@
     "migrate:latest": "knex --knexfile knexfile.ts migrate:latest",
     "migrate:rollback": "knex --knexfile knexfile.ts migrate:rollback",
     "seed:super-admin": "knex --knexfile knexfile.ts seed:run --specific=01-super-admin.ts",
+    "seed:hackathon": "knex --knexfile knexfile.ts seed:run --specific=02-hackathon.ts",
     "db:up": "docker compose up -d db",
     "test": "jest --runInBand",
     "prepare": "husky"

@@ -1,5 +1,11 @@
 import { emailAttachments, renderEmail, renderPlainText } from './mail-layout';
-import { EmailContent, MailMessage, PasswordChangedTemplate, PasswordResetTemplate } from '../types/mail';
+import {
+  EmailContent,
+  EmailVerificationTemplate,
+  MailMessage,
+  PasswordChangedTemplate,
+  PasswordResetTemplate,
+} from '../types/mail';
 
 const build = (to: string, subject: string, content: EmailContent): MailMessage => ({
   to,
@@ -40,5 +46,20 @@ export function passwordChangedMessage({ to, fullName, recoveryUrl, changedAt }:
     notes: [
       'Si no reconoces este cambio, usa el botón para pedir un enlace de recuperación y crear una nueva contraseña. Al hacerlo se cerrarán todas las sesiones abiertas.',
     ],
+  });
+}
+
+export function emailVerificationMessage({ to, nombre, link, ttlHours }: EmailVerificationTemplate): MailMessage {
+  return build(to, 'Verifica tu correo para la Hackathon APEX', {
+    product: 'Hackathon',
+    preheader: `Confirma tu correo para completar tu inscripción. El enlace vence en ${ttlHours} horas.`,
+    title: 'Verifica tu correo',
+    paragraphs: [
+      `Hola ${firstNameOf(nombre)},`,
+      `Recibimos tu inscripción a la Hackathon APEX. Para completarla necesitamos confirmar que este correo es tuyo. El enlace vence en ${ttlHours} horas y solo se puede usar una vez.`,
+      'Tu inscripción queda pendiente hasta que el comité organizador la revise. Te avisaremos cuando haya una decisión.',
+    ],
+    action: { label: 'Verificar mi correo', url: link },
+    notes: ['Si no fuiste tú, ignora este mensaje: no se activará ninguna cuenta con este correo.'],
   });
 }

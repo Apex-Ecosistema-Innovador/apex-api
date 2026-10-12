@@ -44,6 +44,16 @@ DB_SSL_CA=
 ## Paginación y límites
 Todos los listados reciben `page` y `limit` (el front siempre los envía) y el backend los valida con Zod: `limit` entre 1 y 100 (20 por defecto), `page` entre 1 y 100000. Una petición fuera de rango responde 400. La exportación CSV acepta `limit` hasta 5000 filas. Los listados paginados son `/offerings/public`, `/offerings/mine`, `/enrollments/mine`, `/polipoints/roster`, `/polipoints/me` (historial), `/teacher/students`, `/teacher/students/:id` (historial) y `/admin/teachers`; la respuesta incluye `total`, `page` y `limit`. Las consultas SQL se escriben parametrizadas y una regla de ESLint prohíbe interpolar valores en el SQL.
 
+## Inscripción a la hackathon
+El registro de estudiantes para la hackathon vive en este API con identidad propia (tablas `usuarios`, `hackathones`, `inscripciones` y `tokens_usuario`, separadas de `users` de polipuntos). Documentación en `docs/hackathon-inscripciones.md` y `docs/adr/0011-registro-de-hackathon-en-apex-api.md`.
+
+```
+pnpm migrate:latest
+pnpm seed:hackathon
+```
+
+El seed imprime el identificador del evento; ese valor va en `NEXT_PUBLIC_EVENTO_ID` de `apex-web`. Variables nuevas: `APEX_WEB_BASE_URL` (para el enlace del correo de verificación), `EMAIL_VERIFICATION_TTL_HOURS`, `EMAIL_VERIFICATION_COOLDOWN_SECONDS` y las `HACKATHON_*`. El origen de `apex-web` debe estar en `CORS_ORIGINS` en producción.
+
 ## Modo offline
 - `GET /polipoints/roster`: estudiantes inscritos del profesor y sus asignaturas activas, para que el dispositivo los guarde y pueda identificar un QR sin conexión.
 - `POST /polipoints/awards/batch`: sincroniza asignaciones encoladas (`qrToken` o `studentId` para asignaciones manuales, `offeringId`, `points`, `idempotencyKey`, `occurredAt`). Responde un resultado por ítem (`created`, `duplicate`, `rejected`). La firma y versión del QR se validan aquí. Cada asignación guarda su origen en `source` (`qr` o `manual`). Se rechazan fechas futuras y anteriores a `OFFLINE_AWARD_MAX_AGE_DAYS` (7 por defecto).

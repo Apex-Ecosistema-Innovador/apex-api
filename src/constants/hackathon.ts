@@ -1,0 +1,1 @@
+export const VERSION_AUTORIZACION_DATOS = '1.0';

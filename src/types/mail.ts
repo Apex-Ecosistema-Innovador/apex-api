@@ -37,9 +37,17 @@ export interface EmailAction {
 }
 
 export interface EmailContent {
+  product?: string;
   preheader: string;
   title: string;
   paragraphs: string[];
   action?: EmailAction;
   notes?: string[];
+}
+
+export interface EmailVerificationTemplate {
+  to: string;
+  nombre: string;
+  link: string;
+  ttlHours: number;
 }
