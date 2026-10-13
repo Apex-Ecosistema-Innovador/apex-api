@@ -13,7 +13,15 @@ Orden: base de datos, correo, API, webs, ajustar CORS y verificar.
 ## 2. Correo (obligatorio en producción)
 Con `NODE_ENV=production` el API no arranca sin `SMTP_HOST`. Se usa para recuperar contraseña y verificar la inscripción a la hackathon. Resend, Brevo o SendGrid sirven; para una demo corta, una cuenta con contraseña de aplicación. Define `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASSWORD` y `MAIL_FROM`. Verifica el dominio remitente (SPF/DKIM) o los correos caerán en spam.
 
-## 3. API
+## 3. API en Vercel
+El repo trae `vercel.json` y `api/index.js`: Vercel compila con `pnpm build` y expone la app de Express como una función (todas las rutas se reescriben a ella). Crea un proyecto nuevo con el repo `apex-api` (Framework Preset: Other), Node 24 y las variables de `deploy-env/apex-api.vercel.env`.
+
+- **Conexión a la base:** en serverless cada instancia abre su propio pool, así que usa el **Transaction pooler** de Supabase (puerto 6543) y `DB_POOL_MAX=1`. Las migraciones y los seeds no corren en Vercel: ejecútalos desde tu máquina con el Session pooler (puerto 5432), como en la sección 1.
+- **Lectura de PDF:** `vercel.json` fuerza a incluir `pdf-parse`, `@napi-rs/canvas` y `pdfjs-dist` en la función, porque el análisis estático de Vercel no los detecta. Probé el paquete resultante en local, pero no en Vercel.
+- **Límites:** región `iad1` (cerca de Supabase us-east-1), 30 s por petición, cuerpo de hasta 4,5 MB (el horario permite 2 MB). El rate limiting es por instancia (memoria), así que protege menos que en un servidor único.
+- **Correos:** la función se congela al responder; un correo que se envíe después de la respuesta puede perderse. Con SMTP real conviene esperar el envío antes de responder.
+
+## 3b. API en un servidor persistente (alternativa: Render, Railway)
 Servicio web con Node 24 (`NODE_VERSION=24`), Debian/Ubuntu (no hace falta Docker). `corepack enable` instala pnpm según `packageManager`.
 
 | Paso | Comando |
