@@ -6,8 +6,9 @@ Orden: base de datos, correo, API, webs, ajustar CORS y verificar.
 
 ## 1. Base de datos
 1. Crea un Postgres 16 (Supabase, Neon o el de Railway).
-2. Copia la cadena de conexión **directa** (puerto 5432, no el pooler en modo transacción) para `DATABASE_URL`.
-3. Si el proveedor exige SSL: `DB_SSL=true`. Si falla la verificación del certificado, usa `DB_SSL_CA` con el certificado del proveedor; `DB_SSL_REJECT_UNAUTHORIZED=false` solo como último recurso.
+2. Si usas **Supabase**: el host directo `db.<ref>.supabase.co` solo tiene IPv6 y la mayoría de hosts (y muchas redes) no salen por IPv6. Usa el **Session pooler** (Connect > Session pooler), con el formato `postgresql://postgres.<ref>:<clave>@aws-0-<región>.pooler.supabase.com:5432/postgres`. Si la clave tiene caracteres especiales, codifícalos en la URL (`)` es `%29`).
+3. SSL: `DB_SSL=true` y `DB_SSL_CA` con el contenido del certificado raíz de Supabase (Database settings > SSL Configuration > Download certificate). Sin ese certificado Node rechaza la conexión por «self-signed certificate in certificate chain».
+4. Supabase expone las tablas del esquema `public` por su API REST con la clave pública. La migración `20261015000001_enable_row_level_security` activa RLS en todas las tablas existentes y, sin políticas, esa clave no puede leer ni escribir nada; el API se conecta como `postgres`, que ignora RLS. Si agregas tablas nuevas, activa RLS en su migración. No uses las claves `NEXT_PUBLIC_SUPABASE_*`: el API es el dueño de la autenticación.
 
 ## 2. Correo (obligatorio en producción)
 Con `NODE_ENV=production` el API no arranca sin `SMTP_HOST`. Se usa para recuperar contraseña y verificar la inscripción a la hackathon. Resend, Brevo o SendGrid sirven; para una demo corta, una cuenta con contraseña de aplicación. Define `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASSWORD` y `MAIL_FROM`. Verifica el dominio remitente (SPF/DKIM) o los correos caerán en spam.
