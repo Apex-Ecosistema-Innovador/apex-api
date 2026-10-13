@@ -62,10 +62,11 @@ Importa el repositorio; Vercel detecta Next.js y pnpm. Node 24 en Settings > Gen
 
 | Variable | Valor |
 | --- | --- |
-| `NEXT_PUBLIC_API_URL` | `https://<tu-api>/api/v1` |
+| `NEXT_PUBLIC_API_URL` | `/api/v1` (mismo origen; ver abajo) |
+| `API_PROXY_TARGET` | `https://<tu-api>` (solo servidor) |
 | `NEXT_PUBLIC_SITE_URL` | URL `https://` de la web (activa `upgrade-insecure-requests` en la CSP) |
 
-No definas `DISABLE_SECURITY_HEADERS` ni `ALLOWED_DEV_ORIGINS`. Las `NEXT_PUBLIC_*` se incrustan al compilar: si las cambias, vuelve a desplegar. La CSP toma el origen del API de `NEXT_PUBLIC_API_URL`.
+Con ese par de variables Vercel reenvía `/api/v1/*` al API y el navegador solo habla con el dominio de la web: la cookie de refresco es de primera parte y funciona en Safari. Por eso el API usa `COOKIE_SAME_SITE=lax`. No definas `DISABLE_SECURITY_HEADERS` ni `ALLOWED_DEV_ORIGINS`. Las `NEXT_PUBLIC_*` se incrustan al compilar: si las cambias, vuelve a desplegar. La CSP toma el origen del API de `NEXT_PUBLIC_API_URL`.
 
 ## 5. apex-web (Vercel)
 Mismo procedimiento. Variables: `NEXT_PUBLIC_API_URL` (la misma del API) y `NEXT_PUBLIC_EVENTO_ID` (id que imprimió el seed de la hackathon).
@@ -73,7 +74,7 @@ Mismo procedimiento. Variables: `NEXT_PUBLIC_API_URL` (la misma del API) y `NEXT
 ## 6. Cerrar el círculo
 1. Con las URLs finales de Vercel, actualiza `CORS_ORIGINS`, `WEB_BASE_URL` y `APEX_WEB_BASE_URL` en el API y reinícialo.
 2. Las URLs de preview de Vercel cambian en cada despliegue y no están en `CORS_ORIGINS`: solo funciona el dominio de producción.
-3. Si usas `COOKIE_SAME_SITE=none`, Safari y algunos navegadores bloquean cookies de terceros: la sesión se perdería a los 15 minutos (`ACCESS_TOKEN_TTL`). Para una demo sube `ACCESS_TOKEN_TTL=8h`, o mejor usa dominios propios bajo el mismo dominio raíz y `lax`.
+3. No uses `COOKIE_SAME_SITE=none` con web y API en `vercel.app`: Safari bloquea esa cookie de terceros y la sesión se pierde al recargar. Usa el rewrite de polipuntos-web (sección 4) o dominios propios bajo el mismo dominio raíz, con `lax`. apex-web no usa sesión y sigue llamando directo al API (por eso `CORS_ORIGINS` debe incluir su dominio).
 
 ## 7. Verificación
 - `GET https://<api>/health` responde `{"status":"ok"}`.
