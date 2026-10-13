@@ -10,6 +10,7 @@ import { signQrToken, verifyQrToken } from '../lib/qr-token';
 import Role from '../types/enums/roles';
 import AwardSource from '../types/enums/award-source';
 import { env } from '../config/env';
+import { currentTerm } from '../lib/term';
 import { validate } from '../validators/validate';
 import { offlineAwardSchema } from '../validators/polipoint-validator';
 import type { CreateAwardInput, OfflineAwardInput, PageQuery } from '../types/inputs';
@@ -181,7 +182,10 @@ class PolipointService {
       AwardRepo.totalsByOffering(studentId),
       AwardRepo.history(studentId, { page, limit }),
     ]);
-    return { summary: { total, offerings, history: history.rows, historyTotal: history.total }, total: history.total };
+    return {
+      summary: { total, currentTerm: currentTerm(), offerings, history: history.rows, historyTotal: history.total },
+      total: history.total,
+    };
   }
 }
 

@@ -4,13 +4,14 @@ import { Errors } from '../constants/responses';
 import type { ParsedSchedule } from '../types/schedule';
 
 const PDF_SIGNATURE = '%PDF-';
-const TERM_PATTERN = /Curso\s+Acad[eé]mico\s+(20\d{2})-([12])S?/i;
-const DOCUMENT_PATTERN = /Doc\.?\s*Ident\.?\s*([\d.\s]{5,20})/i;
+const TERM_PATTERN = /\b(20\d{2})-([12])S\b/;
+const DOCUMENT_PATTERN = /Doc\.?\s*Ident\.?[^\n]*?(\d[\d.]{3,18}\d)\s*$/im;
+const DOCUMENT_FALLBACK_PATTERN = /Doc\.?\s*Ident\.?[\s\S]{0,120}?(\d[\d.]{4,18}\d)/i;
 const COURSE_PATTERN = /\[([A-Z]{2,5}\d{3,6})\][ \t]+([^\n[]+)/g;
 
 export const parseScheduleText = (text: string): ParsedSchedule | null => {
   const term = TERM_PATTERN.exec(text);
-  const document = DOCUMENT_PATTERN.exec(text);
+  const document = DOCUMENT_PATTERN.exec(text) ?? DOCUMENT_FALLBACK_PATTERN.exec(text);
   if (!term || !document) return null;
 
   const courses = new Map<string, string>();

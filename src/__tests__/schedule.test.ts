@@ -38,8 +38,8 @@ const buildPdf = (lines: string[]) => {
 
 const schedulePdf = (document: string, term: string, courses: [string, string][]) =>
   buildPdf([
-    `Nombre y apellidos ESTUDIANTE DE PRUEBA Doc. Ident. ${document}`,
-    `Curso Academico ${term}S Centro SEDE CENTRAL`,
+    `Nombre y apellidos Doc. Ident. ESTUDIANTE DE PRUEBA ${document}`,
+    `Curso Academico Centro Plan ${term}S SEDE CENTRAL MEDELLIN 8210-INGENIERIA`,
     ...courses.map(([code, name]) => `[${code}] ${name}`),
   ]);
 
@@ -103,8 +103,8 @@ describe('student schedule and ranking', () => {
   it('parses the academic portal schedule text', () => {
     const parsed = parseScheduleText(
       [
-        'Nombre y apellidos ESTUDIANTE DE PRUEBA Doc. Ident. 1012345678',
-        'Curso Académico 2026-2S Centro SEDE CENTRAL MEDELLÍN',
+        'Nombre y apellidos Doc. Ident.\tESTUDIANTE DE PRUEBA 1012345678',
+        'Curso Académico Centro Plan\t2026-2S SEDE CENTRAL MEDELLÍN 8210-INGENIERIA INFORMATICA',
         '[ING01209] GESTION DE REDES Y SERVICIOS',
         '[ING01209] GESTION DE REDES Y SERVICIOS',
         '[ING01208] FORMULACION Y EVALUACION DE PROYECTOS DE',
