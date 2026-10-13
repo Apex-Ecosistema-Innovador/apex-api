@@ -21,3 +21,5 @@ export const registrationLimiter = buildLimiter(15 * 60 * 1000, 60);
 export const verificationLimiter = buildLimiter(15 * 60 * 1000, 20);
 
 export const awardLimiter = buildLimiter(60 * 1000, 60);
+
+export const scheduleLimiter = buildLimiter(15 * 60 * 1000, 20);

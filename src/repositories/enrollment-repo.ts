@@ -1,4 +1,5 @@
 import Database from '../lib/database';
+import { currentTerm } from '../lib/term';
 import { Queryable } from '../types/database';
 import { PageResult, RosterRow } from '../types/repositories';
 
@@ -6,7 +7,7 @@ const ROSTER_FILTERS = `
   FROM enrollments
   JOIN offerings ON offerings.id = enrollments.offering_id
   JOIN users ON users.id = enrollments.student_id
-  WHERE offerings.teacher_id = $1 AND offerings.active = true
+  WHERE offerings.teacher_id = $1 AND offerings.active = true AND offerings.term = $2
 `;
 
 class EnrollmentRepo {
@@ -39,8 +40,9 @@ class EnrollmentRepo {
       FROM enrollments
       JOIN offerings ON offerings.id = enrollments.offering_id
       WHERE enrollments.student_id = $1 AND offerings.teacher_id = $2 AND offerings.active = true
+        AND offerings.term = $3
     `;
-    const rows = await Database.query<{ id: string }>(query, [studentId, teacherId], {
+    const rows = await Database.query<{ id: string }>(query, [studentId, teacherId, currentTerm()], {
       queryId: 'EnrollmentRepo.sharedOfferingIds',
     });
     return rows.map((row) => row.id);
@@ -55,14 +57,14 @@ class EnrollmentRepo {
         offerings.id AS "offeringId"
       ${ROSTER_FILTERS}
       ORDER BY users.cedula, offerings.id
-      LIMIT $2 OFFSET $3
+      LIMIT $3 OFFSET $4
     `;
     const countQuery = `SELECT count(*)::int AS total ${ROSTER_FILTERS}`;
     const [rows, totals] = await Promise.all([
-      Database.query<RosterRow>(rowsQuery, [teacherId, limit, (page - 1) * limit], {
+      Database.query<RosterRow>(rowsQuery, [teacherId, currentTerm(), limit, (page - 1) * limit], {
         queryId: 'EnrollmentRepo.rosterForTeacher',
       }),
-      Database.query<{ total: number }>(countQuery, [teacherId], {
+      Database.query<{ total: number }>(countQuery, [teacherId, currentTerm()], {
         queryId: 'EnrollmentRepo.rosterForTeacher.count',
       }),
     ]);

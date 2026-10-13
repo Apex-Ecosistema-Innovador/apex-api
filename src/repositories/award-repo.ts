@@ -1,5 +1,5 @@
 import Database from '../lib/database';
-import { PolipointAward } from '../types/models';
+import { PolipointAward, RankingEntry } from '../types/models';
 import AwardSource from '../types/enums/award-source';
 import { AwardHistoryRow, CreateAwardData, HistoryFilters, OfferingTotalRow, PageResult } from '../types/repositories';
 
@@ -27,6 +27,29 @@ const HISTORY_FILTERS = `
     AND ($2::uuid IS NULL OR polipoint_awards.offering_id = $2)
     AND ($3::uuid IS NULL OR polipoint_awards.teacher_id = $3)
 `;
+
+const RANKED_STUDENTS = `
+      WITH totals AS (
+        SELECT
+          users.id AS student_id,
+          users.full_name AS full_name,
+          COALESCE(sum(polipoint_awards.points), 0)::int AS points
+        FROM enrollments
+        JOIN users ON users.id = enrollments.student_id
+        LEFT JOIN polipoint_awards
+          ON polipoint_awards.student_id = enrollments.student_id
+          AND polipoint_awards.offering_id = enrollments.offering_id
+          AND polipoint_awards.revoked_at IS NULL
+        WHERE enrollments.offering_id = $1
+        GROUP BY users.id, users.full_name
+      ),
+      ranked AS (
+        SELECT student_id, full_name, points, rank() OVER (ORDER BY points DESC)::int AS rank
+        FROM totals
+      )
+    `;
+
+const RANKING_COLUMNS = `student_id AS "studentId", full_name AS "fullName", points, rank, (student_id = $2) AS "isMe"`;
 
 class AwardRepo {
   public static async findById(id: string): Promise<PolipointAward | undefined> {
@@ -161,6 +184,26 @@ class AwardRepo {
       queryId: 'AwardRepo.hasActiveAwards',
     });
     return rows.length > 0;
+  }
+
+  public static async ranking(
+    offeringId: string,
+    viewerId: string,
+    page: number,
+    limit: number,
+  ): Promise<{ rows: RankingEntry[]; total: number; me: RankingEntry | null }> {
+    const rowsQuery = `${RANKED_STUDENTS} SELECT ${RANKING_COLUMNS} FROM ranked ORDER BY rank, full_name LIMIT $3 OFFSET $4`;
+    const countQuery = `${RANKED_STUDENTS} SELECT count(*)::int AS total FROM ranked`;
+    const meQuery = `${RANKED_STUDENTS} SELECT ${RANKING_COLUMNS} FROM ranked WHERE student_id = $2`;
+
+    const [rows, totals, mine] = await Promise.all([
+      Database.query<RankingEntry>(rowsQuery, [offeringId, viewerId, limit, (page - 1) * limit], {
+        queryId: 'AwardRepo.ranking',
+      }),
+      Database.query<{ total: number }>(countQuery, [offeringId], { queryId: 'AwardRepo.ranking.count' }),
+      Database.query<RankingEntry>(meQuery, [offeringId, viewerId], { queryId: 'AwardRepo.ranking.me' }),
+    ]);
+    return { rows, total: totals[0].total, me: mine[0] ?? null };
   }
 }
 

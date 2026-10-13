@@ -27,12 +27,13 @@ const PUBLIC_FILTERS = `
   FROM offerings
   JOIN users ON users.id = offerings.teacher_id
   WHERE offerings.active = true
-    AND users.status = $1
+    AND offerings.term = $1
+    AND users.status = $2
     AND (
-      $2::text IS NULL
-      OR lower(offerings.course_code) LIKE $2
-      OR lower(offerings.course_name) LIKE $2
-      OR users.full_name_search LIKE $2
+      $3::text IS NULL
+      OR lower(offerings.course_code) LIKE $3
+      OR lower(offerings.course_name) LIKE $3
+      OR users.full_name_search LIKE $3
     )
 `;
 
@@ -138,6 +139,7 @@ class OfferingRepo {
   }
 
   public static async listPublic(
+    term: string,
     search: string | undefined,
     page: number,
     limit: number,
@@ -147,10 +149,10 @@ class OfferingRepo {
       SELECT ${PUBLIC_OFFERING_COLUMNS}
       ${PUBLIC_FILTERS}
       ORDER BY offerings.course_code, users.full_name
-      LIMIT $3 OFFSET $4
+      LIMIT $4 OFFSET $5
     `;
     const countQuery = `SELECT count(*)::int AS total ${PUBLIC_FILTERS}`;
-    const filterParameters = [UserStatus.Active, like];
+    const filterParameters = [term, UserStatus.Active, like];
     const [rows, totals] = await Promise.all([
       Database.query<PublicOffering>(rowsQuery, [...filterParameters, limit, (page - 1) * limit], {
         queryId: 'OfferingRepo.listPublic',
@@ -162,6 +164,7 @@ class OfferingRepo {
 
   public static async listByStudent(
     studentId: string,
+    term: string,
     page: number,
     limit: number,
   ): Promise<PageResult<PublicOffering>> {
@@ -170,16 +173,23 @@ class OfferingRepo {
       FROM enrollments
       JOIN offerings ON offerings.id = enrollments.offering_id
       JOIN users ON users.id = offerings.teacher_id
-      WHERE enrollments.student_id = $1
+      WHERE enrollments.student_id = $1 AND offerings.term = $2
       ORDER BY offerings.course_code
-      LIMIT $2 OFFSET $3
+      LIMIT $3 OFFSET $4
     `;
-    const countQuery = `SELECT count(*)::int AS total FROM enrollments WHERE student_id = $1`;
+    const countQuery = `
+      SELECT count(*)::int AS total
+      FROM enrollments
+      JOIN offerings ON offerings.id = enrollments.offering_id
+      WHERE enrollments.student_id = $1 AND offerings.term = $2
+    `;
     const [rows, totals] = await Promise.all([
-      Database.query<PublicOffering>(rowsQuery, [studentId, limit, (page - 1) * limit], {
+      Database.query<PublicOffering>(rowsQuery, [studentId, term, limit, (page - 1) * limit], {
         queryId: 'OfferingRepo.listByStudent',
       }),
-      Database.query<{ total: number }>(countQuery, [studentId], { queryId: 'OfferingRepo.listByStudent.count' }),
+      Database.query<{ total: number }>(countQuery, [studentId, term], {
+        queryId: 'OfferingRepo.listByStudent.count',
+      }),
     ]);
     return { rows, total: totals[0].total };
   }

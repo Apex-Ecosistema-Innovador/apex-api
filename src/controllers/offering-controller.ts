@@ -33,6 +33,18 @@ class OfferingController {
     });
   }
 
+  public static async ranking(req: Request, res: Response) {
+    const offeringId = validate(uuidSchema, req.params.offeringId);
+    const query = validate(paginationSchema, req.query);
+    const { rows, total, me } = await OfferingService.ranking(req.auth!, offeringId, query);
+    BaseController.handleSuccess(res, {
+      payload: { me, entries: rows },
+      total,
+      page: query.page,
+      limit: query.limit,
+    });
+  }
+
   public static async update(req: Request, res: Response) {
     const id = validate(uuidSchema, req.params.id);
     const offering = await OfferingService.update(req.auth!.userId, id, validate(updateOfferingSchema, req.body));

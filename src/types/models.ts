@@ -79,3 +79,11 @@ export interface PasswordResetToken {
   usedAt: Date | null;
   createdAt: Date;
 }
+
+export interface RankingEntry {
+  studentId: string;
+  fullName: string;
+  points: number;
+  rank: number;
+  isMe: boolean;
+}

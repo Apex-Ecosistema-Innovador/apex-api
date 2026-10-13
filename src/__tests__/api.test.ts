@@ -61,7 +61,7 @@ describe('polipuntos api', () => {
     const lowercase = await api
       .post(`${base}/offerings`)
       .set(bearer(teacherToken))
-      .send({ courseCode: 'ing004', courseName: 'Ingeniería', term: '2027-1' });
+      .send({ courseCode: 'ing004', courseName: 'Ingeniería', term: '2026-2' });
     expect(lowercase.status).toBe(201);
     expect(lowercase.body.payload.courseCode).toBe('ING004');
 

@@ -10,6 +10,12 @@ function offeringRouter() {
   router.get('/public', OfferingController.listPublic);
   router.get('/mine', requireAuthentication, requireRoles([Role.Teacher]), OfferingController.listMine);
   router.post('/', requireAuthentication, requireRoles([Role.Teacher]), OfferingController.create);
+  router.get(
+    '/:offeringId/ranking',
+    requireAuthentication,
+    requireRoles([Role.Student, Role.Teacher]),
+    OfferingController.ranking,
+  );
   router.patch('/:id', requireAuthentication, requireRoles([Role.Teacher]), OfferingController.update);
 
   return router;

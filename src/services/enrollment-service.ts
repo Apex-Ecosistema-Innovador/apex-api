@@ -3,17 +3,21 @@ import { Errors } from '../constants/responses';
 import OfferingRepo from '../repositories/offering-repo';
 import EnrollmentRepo from '../repositories/enrollment-repo';
 import AwardRepo from '../repositories/award-repo';
+import { currentTerm } from '../lib/term';
 import type { PageQuery } from '../types/inputs';
 
 class EnrollmentService {
   public static listMine(studentId: string, { page, limit }: PageQuery) {
-    return OfferingRepo.listByStudent(studentId, page, limit);
+    return OfferingRepo.listByStudent(studentId, currentTerm(), page, limit);
   }
 
   public static async enroll(studentId: string, offeringId: string) {
     const offering = await OfferingRepo.findById(offeringId);
     if (!offering) throw new CustomError(Errors.OfferingNotFound.status, Errors.OfferingNotFound.message);
     if (!offering.active) throw new CustomError(Errors.OfferingInactive.status, Errors.OfferingInactive.message);
+    if (offering.term !== currentTerm()) {
+      throw new CustomError(Errors.OfferingNotCurrent.status, Errors.OfferingNotCurrent.message);
+    }
     if (await EnrollmentRepo.exists(studentId, offeringId)) {
       throw new CustomError(Errors.AlreadyEnrolled.status, Errors.AlreadyEnrolled.message);
     }

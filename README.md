@@ -56,6 +56,9 @@ El seed imprime el identificador del evento; ese valor va en `NEXT_PUBLIC_EVENTO
 
 ## Modo offline
 - `GET /polipoints/roster`: estudiantes inscritos del profesor y sus asignaturas activas, para que el dispositivo los guarde y pueda identificar un QR sin conexión.
+- `GET /schedule/current`, `POST /schedule` (multipart, campo `file`, PDF de hasta `SCHEDULE_MAX_BYTES`) y `POST /schedule/sync` (estudiante): el horario del portal académico se lee en el servidor, se verifica que el documento de identidad sea el de la cuenta y que el periodo sea el vigente, y se guardan solo los códigos y nombres de asignatura (el PDF y el documento no se almacenan). Cada código se enlaza a la asignatura del periodo con ese mismo código: si hay una sola se inscribe automáticamente (`linked`), si hay varias profesoras o profesores el estudiante elige con `POST /enrollments` (`choose`) y si todavía no existe queda `unavailable` hasta que se pida `sync` de nuevo.
+- `GET /offerings/:offeringId/ranking` (estudiante inscrito o profesor dueño): `payload` es `{ me, entries }` con `rank`, `fullName` y `points` por estudiante (sin cédula), paginado con `page` y `limit`.
+- Periodo vigente: `CURRENT_TERM` (por ejemplo `2026-2`) o, si no se define, se calcula por fecha (enero a junio es `-1`, julio a diciembre `-2`, hora de Bogotá). Cada semestre se reinician las asignaturas: el listado público, `GET /enrollments/mine`, el roster y el escaneo solo consideran asignaturas del periodo vigente, los polipuntos anteriores se conservan en el historial, y el estudiante vuelve a cargar su horario.
 - `POST /polipoints/awards`: `points` es un entero distinto de cero entre `-MAX_POINTS_PER_AWARD` y `MAX_POINTS_PER_AWARD`; un valor negativo descuenta polipuntos y los totales (por asignatura y global) pueden quedar por debajo de cero.
 - `POST /polipoints/awards/batch`: sincroniza asignaciones encoladas (`qrToken` o `studentId` para asignaciones manuales, `offeringId`, `points`, `idempotencyKey`, `occurredAt`). Responde un resultado por ítem (`created`, `duplicate`, `rejected`). La firma y versión del QR se validan aquí. Cada asignación guarda su origen en `source` (`qr` o `manual`). Se rechazan fechas futuras y anteriores a `OFFLINE_AWARD_MAX_AGE_DAYS` (7 por defecto).
 
@@ -91,7 +94,7 @@ Con `NODE_ENV=development` el CORS acepta, además de `CORS_ORIGINS`, cualquier 
 El API escucha en `PORT` (4000 por defecto; el 5000 queda libre para otros proyectos). El frontend lo toma de `NEXT_PUBLIC_API_URL`.
 
 ## Calidad antes de cada commit
-Husky ejecuta `.husky/pre-commit`: `lint` (sin advertencias), `typecheck` y `build`. Si falla alguno, el commit se cancela. Los tests no se incluyen en el hook porque requieren la base de datos en Docker; correlos con `pnpm test`.
+Husky ejecuta `.husky/pre-commit`: `lint` (sin advertencias), `typecheck` y `build`. Si falla alguno, el commit se cancela. Los tests no se incluyen en el hook porque requieren la base de datos en Docker; correlos con `pnpm test` (el script activa `--experimental-vm-modules` porque `pdf-parse` carga su worker con `import()` dinámico).
 
 ## Pendientes
 - **CI/CD con GitHub Actions** (aún no): workflow que corra lint, typecheck, build y tests (con Postgres como servicio) en cada push y pull request, y despliegue a producción.

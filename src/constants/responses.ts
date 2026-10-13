@@ -37,6 +37,7 @@ export const Errors = {
   OfferingNotFound: { status: HttpStatus.NotFound, message: 'Asignatura no encontrada' },
   OfferingTaken: { status: HttpStatus.Conflict, message: 'Ya registraste esa asignatura en ese periodo' },
   OfferingInactive: { status: HttpStatus.Conflict, message: 'La asignatura no está activa' },
+  OfferingNotCurrent: { status: HttpStatus.Conflict, message: 'La asignatura no pertenece al periodo vigente' },
   AlreadyEnrolled: { status: HttpStatus.Conflict, message: 'Ya estás inscrito en esta asignatura' },
   NotEnrolled: { status: HttpStatus.NotFound, message: 'El estudiante no está inscrito en esta asignatura' },
   EnrollmentHasPoints: {
@@ -53,6 +54,24 @@ export const Errors = {
   AwardTooOld: { status: HttpStatus.BadRequest, message: 'La fecha del registro es demasiado antigua' },
   AwardInFuture: { status: HttpStatus.BadRequest, message: 'La fecha del registro es inválida' },
   PointsOutOfRange: { status: HttpStatus.BadRequest, message: 'Cantidad de polipuntos fuera de rango' },
+  ScheduleUnreadable: {
+    status: HttpStatus.BadRequest,
+    message: 'No pudimos leer el horario. Sube el PDF original que descargas del portal académico.',
+  },
+  ScheduleNotYours: {
+    status: HttpStatus.Forbidden,
+    message: 'El documento de identidad del horario no coincide con el de tu cuenta',
+  },
+  ScheduleWrongTerm: {
+    status: HttpStatus.Conflict,
+    message: 'El horario no corresponde al periodo académico vigente',
+  },
+  ScheduleFileMissing: { status: HttpStatus.BadRequest, message: 'Adjunta el horario en PDF' },
+  ScheduleFileTooLarge: { status: HttpStatus.BadRequest, message: 'El archivo es demasiado grande' },
+  RankingForbidden: {
+    status: HttpStatus.Forbidden,
+    message: 'Solo los estudiantes inscritos y el profesor pueden ver el ranking',
+  },
   RouteNotFound: { status: HttpStatus.NotFound, message: 'Ruta no encontrada' },
   Internal: { status: HttpStatus.InternalServerError, message: 'Error interno del servidor' },
   TooManyRequests: { status: HttpStatus.TooManyRequests, message: 'Demasiadas solicitudes, intenta más tarde' },
@@ -66,6 +85,8 @@ export const Successes = {
   OfferingUpdated: 'Asignatura actualizada',
   Enrolled: 'Inscripción realizada',
   Unenrolled: 'Inscripción eliminada',
+  ScheduleSaved: 'Horario cargado',
+  ScheduleSynced: 'Horario actualizado',
   AwardCreated: 'Polipuntos asignados',
   AwardRevoked: 'Polipuntos revertidos',
   TeacherUpdated: 'Profesor actualizado',

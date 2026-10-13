@@ -26,6 +26,11 @@ const envSchema = z.object({
   SMTP_PASSWORD: z.string().optional(),
   MAIL_FROM: z.string().default('APEX Polipuntos <no-reply@localhost>'),
   MAX_POINTS_PER_AWARD: z.coerce.number().int().positive().default(1000),
+  CURRENT_TERM: z
+    .string()
+    .regex(/^20\d{2}-[12]$/)
+    .optional(),
+  SCHEDULE_MAX_BYTES: z.coerce.number().int().positive().default(2 * 1024 * 1024),
   OFFLINE_AWARD_MAX_AGE_DAYS: z.coerce.number().int().positive().default(7),
 });
 

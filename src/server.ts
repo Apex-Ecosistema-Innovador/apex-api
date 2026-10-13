@@ -9,6 +9,7 @@ import handleError, { handleNotFound } from './middlewares/handle-error';
 import authRouter from './routers/auth-router';
 import offeringRouter from './routers/offering-router';
 import enrollmentRouter from './routers/enrollment-router';
+import scheduleRouter from './routers/schedule-router';
 import polipointRouter from './routers/polipoint-router';
 import teacherRouter from './routers/teacher-router';
 import adminRouter from './routers/admin-router';
@@ -41,6 +42,7 @@ class Server {
     this.app.use('/api/v1/auth', authRouter());
     this.app.use('/api/v1/offerings', offeringRouter());
     this.app.use('/api/v1/enrollments', enrollmentRouter());
+    this.app.use('/api/v1/schedule', scheduleRouter());
     this.app.use('/api/v1/polipoints', polipointRouter());
     this.app.use('/api/v1/teacher', teacherRouter());
     this.app.use('/api/v1/admin', adminRouter());
