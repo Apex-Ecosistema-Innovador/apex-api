@@ -3,6 +3,13 @@ import { env } from '../config/env';
 import AwardSource from '../types/enums/award-source';
 import { uuidSchema } from './common';
 
+const pointsSchema = z
+  .number()
+  .int()
+  .min(-env.MAX_POINTS_PER_AWARD)
+  .max(env.MAX_POINTS_PER_AWARD)
+  .refine((value) => value !== 0, 'La cantidad no puede ser cero');
+
 export const scanSchema = z.object({
   token: z.string().min(1),
 });
@@ -10,7 +17,7 @@ export const scanSchema = z.object({
 export const createAwardSchema = z.object({
   studentId: uuidSchema,
   offeringId: uuidSchema,
-  points: z.number().int().min(1).max(env.MAX_POINTS_PER_AWARD),
+  points: pointsSchema,
   reason: z.string().trim().max(255).optional(),
   idempotencyKey: z.string().trim().min(8).max(100),
   source: z.enum(AwardSource).default(AwardSource.Qr),
@@ -21,7 +28,7 @@ export const offlineAwardSchema = z
     qrToken: z.string().min(1).optional(),
     studentId: uuidSchema.optional(),
     offeringId: uuidSchema,
-    points: z.number().int().min(1).max(env.MAX_POINTS_PER_AWARD),
+    points: pointsSchema,
     reason: z.string().trim().max(255).optional(),
     idempotencyKey: z.string().trim().min(8).max(100),
     occurredAt: z.iso.datetime({ offset: true }),

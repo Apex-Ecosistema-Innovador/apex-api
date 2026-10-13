@@ -146,6 +146,26 @@ describe('polipuntos api', () => {
     const summary = await api.get(`${base}/polipoints/me`).set(bearer(studentToken));
     expect(summary.body.payload.total).toBe(70);
 
+    const penalty = await api.post(`${base}/polipoints/awards`).set(bearer(teacher2Token)).send({
+      studentId,
+      offeringId: o3.body.payload.id,
+      points: -5,
+      idempotencyKey: 'key-0005-eeee',
+    });
+    expect(penalty.status).toBe(201);
+    expect(penalty.body.payload.points).toBe(-5);
+
+    const zero = await api.post(`${base}/polipoints/awards`).set(bearer(teacher2Token)).send({
+      studentId,
+      offeringId: o3.body.payload.id,
+      points: 0,
+      idempotencyKey: 'key-0006-ffff',
+    });
+    expect(zero.status).toBe(400);
+
+    const afterPenalty = await api.get(`${base}/polipoints/me`).set(bearer(studentToken));
+    expect(afterPenalty.body.payload.total).toBe(65);
+
     const dashboard = await api
       .get(`${base}/teacher/students`)
       .set(bearer(teacherToken))
@@ -250,7 +270,7 @@ describe('polipuntos api', () => {
     expect(again.status).toBe(409);
 
     const afterRevoke = await api.get(`${base}/polipoints/me`).set(bearer(studentToken));
-    expect(afterRevoke.body.payload.total).toBe(20);
+    expect(afterRevoke.body.payload.total).toBe(15);
 
     const rotated = await api.post(`${base}/polipoints/me/qr/rotate`).set(bearer(studentToken));
     expect(rotated.status).toBe(200);
@@ -273,6 +293,16 @@ describe('polipuntos api', () => {
 
     const login = await api.post(`${base}/auth/login`).send({ cedula: '3000000001', password: 'password123' });
     expect(login.status).toBe(403);
+
+    const pendingList = await api
+      .get(`${base}/admin/teachers`)
+      .set(bearer(adminToken))
+      .query({ status: 'pending_approval', page: 1, limit: 100 });
+    expect(pendingList.status).toBe(200);
+    expect(pendingList.body.total).toBe(1);
+
+    const allTeachers = await api.get(`${base}/admin/teachers`).set(bearer(adminToken)).query({ page: 1, limit: 100 });
+    expect(allTeachers.status).toBe(200);
 
     const approve = await api
       .patch(`${base}/admin/teachers/${reg.body.payload.user.id}/approve`)

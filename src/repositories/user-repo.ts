@@ -89,7 +89,7 @@ class UserRepo {
   }
 
   public static async listByRole(role: Role, status: UserStatus | undefined, page: number, limit: number) {
-    const LIST_FILTERS = `WHERE role = $1 AND ($2::text IS NULL OR status = $2)`;
+    const LIST_FILTERS = `WHERE role = $1 AND ($2::user_status IS NULL OR status = $2::user_status)`;
     const rowsQuery = `
       SELECT ${USER_COLUMNS}
       FROM users

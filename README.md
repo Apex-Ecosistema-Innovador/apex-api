@@ -56,6 +56,7 @@ El seed imprime el identificador del evento; ese valor va en `NEXT_PUBLIC_EVENTO
 
 ## Modo offline
 - `GET /polipoints/roster`: estudiantes inscritos del profesor y sus asignaturas activas, para que el dispositivo los guarde y pueda identificar un QR sin conexión.
+- `POST /polipoints/awards`: `points` es un entero distinto de cero entre `-MAX_POINTS_PER_AWARD` y `MAX_POINTS_PER_AWARD`; un valor negativo descuenta polipuntos y los totales (por asignatura y global) pueden quedar por debajo de cero.
 - `POST /polipoints/awards/batch`: sincroniza asignaciones encoladas (`qrToken` o `studentId` para asignaciones manuales, `offeringId`, `points`, `idempotencyKey`, `occurredAt`). Responde un resultado por ítem (`created`, `duplicate`, `rejected`). La firma y versión del QR se validan aquí. Cada asignación guarda su origen en `source` (`qr` o `manual`). Se rechazan fechas futuras y anteriores a `OFFLINE_AWARD_MAX_AGE_DAYS` (7 por defecto).
 
 ## Super admin inicial
