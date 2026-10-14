@@ -8,7 +8,7 @@ import EnrollmentRepo from '../repositories/enrollment-repo';
 import InviteRepo from '../repositories/invite-repo';
 import { hashPassword, verifyPassword } from '../lib/hash';
 import { signAccessToken } from '../lib/jwt';
-import { mailer } from '../lib/mailer';
+import { dispatchMail } from '../lib/mailer';
 import { passwordChangedMessage, passwordResetMessage } from '../lib/mail-templates';
 import PasswordResetRepo from '../repositories/password-reset-repo';
 import { generateRefreshToken, hashRefreshToken } from '../lib/refresh-token';
@@ -20,7 +20,6 @@ import UserStatus from '../types/enums/user-status';
 import { PublicUser, User } from '../types/models';
 import { Session } from '../types/auth';
 import type { LoginInput, RegisterStudentInput, RegisterTeacherInput } from '../types/inputs';
-import { MailMessage } from '../types/mail';
 
 const uniqueViolation = (error: unknown) => {
   const { code, constraint } = error as { code?: string; constraint?: string };
@@ -191,15 +190,9 @@ class AuthService {
     return `${env.WEB_BASE_URL.replace(/\/$/, '')}${path}`;
   }
 
-  private static dispatch(message: MailMessage): void {
-    void mailer.send(message).catch((error) => {
-      if (!env.isTest) console.error('email delivery failed', error);
-    });
-  }
-
   private static notifyPasswordChanged(user: User): void {
     if (!user.email) return;
-    AuthService.dispatch(
+    dispatchMail(
       passwordChangedMessage({
         to: user.email,
         fullName: user.fullName,
@@ -224,7 +217,7 @@ class AuthService {
       new Date(Date.now() + env.PASSWORD_RESET_TTL_MINUTES * 60 * 1000),
     );
 
-    AuthService.dispatch(
+    dispatchMail(
       passwordResetMessage({
         to: user.email!,
         fullName: user.fullName,

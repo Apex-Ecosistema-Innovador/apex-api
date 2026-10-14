@@ -1,6 +1,9 @@
 import nodemailer from 'nodemailer';
+import { waitUntil } from '@vercel/functions';
 import { env } from '../config/env';
 import { MailMessage, MailTransport } from '../types/mail';
+
+const SMTP_TIMEOUT_MS = 10_000;
 
 class SmtpTransport implements MailTransport {
   private readonly transporter = nodemailer.createTransport({
@@ -8,6 +11,9 @@ class SmtpTransport implements MailTransport {
     port: env.SMTP_PORT,
     secure: env.SMTP_SECURE === 'true',
     auth: env.SMTP_USER ? { user: env.SMTP_USER, pass: env.SMTP_PASSWORD } : undefined,
+    connectionTimeout: SMTP_TIMEOUT_MS,
+    greetingTimeout: SMTP_TIMEOUT_MS,
+    socketTimeout: SMTP_TIMEOUT_MS,
   });
 
   public async send(message: MailMessage) {
@@ -35,3 +41,10 @@ const buildTransport = (): MailTransport => {
 };
 
 export const mailer = buildTransport();
+
+export const dispatchMail = (message: MailMessage): void => {
+  const delivery = mailer.send(message).catch((error) => {
+    if (!env.isTest) console.error('email delivery failed', error);
+  });
+  waitUntil(delivery);
+};

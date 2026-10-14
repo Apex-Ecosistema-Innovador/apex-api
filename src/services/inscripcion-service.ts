@@ -4,7 +4,7 @@ import { Errors } from '../constants/responses';
 import { VERSION_AUTORIZACION_DATOS } from '../constants/hackathon';
 import { env } from '../config/env';
 import { hashPassword } from '../lib/hash';
-import { mailer } from '../lib/mailer';
+import { dispatchMail } from '../lib/mailer';
 import { emailVerificationMessage } from '../lib/mail-templates';
 import { generateRefreshToken, hashRefreshToken } from '../lib/refresh-token';
 import FaseHackathon from '../types/enums/fase-hackathon';
@@ -53,9 +53,7 @@ class InscripcionService {
       link: InscripcionService.enlaceDeVerificacion(token),
       ttlHours: env.EMAIL_VERIFICATION_TTL_HOURS,
     });
-    void mailer.send(message).catch((error) => {
-      if (!env.isTest) console.error('email delivery failed', error);
-    });
+    dispatchMail(message);
   }
 
   public static async obtenerEvento(hackathonId: string): Promise<EventoPublico> {

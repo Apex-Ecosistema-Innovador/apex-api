@@ -28,6 +28,7 @@
     "node": ">=24"
   },
   "dependencies": {
+    "@vercel/functions": "^3.9.11",
     "argon2": "^0.45.1",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
