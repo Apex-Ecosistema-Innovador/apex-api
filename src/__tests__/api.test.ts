@@ -327,4 +327,29 @@ describe('polipuntos api', () => {
       .send({ cedula: '4000000002', fullName: 'Admin Tres', email: 'admin3@elpoli.edu.co', password: 'password123' });
     expect(denied.status).toBe(403);
   });
+
+  it('lets admins sign in with their email while everyone else uses the cedula', async () => {
+    await Database.execute(`UPDATE users SET email = 'apex@elpoli.edu.co' WHERE cedula = '1000000000'`, [], {
+      queryId: 'test.setAdminEmail',
+    });
+
+    const byEmail = await api.post(`${base}/auth/login`).send({ identifier: 'APEX@elpoli.edu.co', password: 'password123' });
+    expect(byEmail.status).toBe(200);
+    expect(byEmail.body.payload.user.role).toBe('super_admin');
+
+    const byCedula = await api.post(`${base}/auth/login`).send({ identifier: '1000000000', password: 'password123' });
+    expect(byCedula.status).toBe(200);
+
+    const wrongPassword = await api.post(`${base}/auth/login`).send({ identifier: 'apex@elpoli.edu.co', password: 'otra' });
+    expect(wrongPassword.status).toBe(401);
+
+    const teacher = await api
+      .post(`${base}/auth/register/teacher`)
+      .send({ cedula: '5000000001', fullName: 'Profe Correo', email: 'profe.correo@elpoli.edu.co', password: 'password123' });
+    expect(teacher.status).toBe(201);
+    const teacherByEmail = await api
+      .post(`${base}/auth/login`)
+      .send({ identifier: 'profe.correo@elpoli.edu.co', password: 'password123' });
+    expect(teacherByEmail.status).toBe(401);
+  });
 });

@@ -17,10 +17,16 @@ export const registerTeacherSchema = z.object({
   inviteCode: z.string().trim().min(1).max(40).optional(),
 });
 
-export const loginSchema = z.object({
-  cedula: cedulaSchema,
-  password: z.string().min(1),
-});
+const identifierSchema = z.string().trim().min(1).max(254);
+
+export const loginSchema = z
+  .object({
+    identifier: identifierSchema.optional(),
+    cedula: identifierSchema.optional(),
+    password: z.string().min(1),
+  })
+  .refine((value) => value.identifier ?? value.cedula, 'Ingresa tu cédula o correo')
+  .transform((value) => ({ identifier: (value.identifier ?? value.cedula)!, password: value.password }));
 
 export const forgotPasswordSchema = z.object({
   email: z.string().trim().toLowerCase().max(254).pipe(z.email()),

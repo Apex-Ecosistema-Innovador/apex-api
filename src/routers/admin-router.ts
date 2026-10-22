@@ -12,6 +12,8 @@ function adminRouter() {
   router.patch('/teachers/:id/approve', requireRoles([Role.Admin, Role.SuperAdmin]), AdminController.approveTeacher);
   router.patch('/teachers/:id/disable', requireRoles([Role.Admin, Role.SuperAdmin]), AdminController.disableTeacher);
   router.post('/invites', requireRoles([Role.Admin, Role.SuperAdmin]), AdminController.createInvite);
+  router.get('/hackathon/inscripciones', requireRoles([Role.SuperAdmin]), AdminController.listInscripciones);
+  router.get('/hackathon/inscripciones/resumen', requireRoles([Role.SuperAdmin]), AdminController.resumenInscripciones);
   router.post('/admins', requireRoles([Role.SuperAdmin]), AdminController.createAdmin);
 
   return router;

@@ -1,6 +1,7 @@
 import CustomError from '../types/custom-error';
 import { Errors } from '../constants/responses';
 import UserRepo from '../repositories/user-repo';
+import InscripcionRepo from '../repositories/inscripcion-repo';
 import InviteRepo from '../repositories/invite-repo';
 import RefreshTokenRepo from '../repositories/refresh-token-repo';
 import AuthService from './auth-service';
@@ -9,11 +10,20 @@ import { normalizeName } from '../lib/normalize';
 import Role from '../types/enums/roles';
 import UserStatus from '../types/enums/user-status';
 import type { CreateAdminInput } from '../types/inputs';
+import type { FiltrosInscripciones } from '../types/hackathon';
 
 class AdminService {
   public static async listTeachers(status: UserStatus | undefined, page: number, limit: number) {
     const { rows, total } = await UserRepo.listByRole(Role.Teacher, status, page, limit);
     return { teachers: rows.map(AuthService.toPublicUser), total };
+  }
+
+  public static async listInscripciones(filtros: FiltrosInscripciones, page: number, limit: number) {
+    return InscripcionRepo.listarParaAdmin(filtros, page, limit);
+  }
+
+  public static async resumenInscripciones(hackathonId: string | undefined) {
+    return InscripcionRepo.resumen(hackathonId);
   }
 
   public static async setTeacherStatus(id: string, status: UserStatus) {

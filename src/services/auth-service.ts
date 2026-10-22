@@ -14,7 +14,7 @@ import PasswordResetRepo from '../repositories/password-reset-repo';
 import { generateRefreshToken, hashRefreshToken } from '../lib/refresh-token';
 import RefreshTokenRepo from '../repositories/refresh-token-repo';
 import { env } from '../config/env';
-import { normalizeName } from '../lib/normalize';
+import { normalizeCedula, normalizeName } from '../lib/normalize';
 import Role from '../types/enums/roles';
 import UserStatus from '../types/enums/user-status';
 import { PublicUser, User } from '../types/models';
@@ -139,8 +139,14 @@ class AuthService {
     }
   }
 
+  private static async findForLogin(identifier: string): Promise<User | undefined> {
+    if (!identifier.includes('@')) return UserRepo.findByCedula(normalizeCedula(identifier));
+    const user = await UserRepo.findByEmail(identifier);
+    return user && (user.role === Role.Admin || user.role === Role.SuperAdmin) ? user : undefined;
+  }
+
   public static async login(input: LoginInput): Promise<Session> {
-    const user = await UserRepo.findByCedula(input.cedula);
+    const user = await AuthService.findForLogin(input.identifier);
     const valid = user ? await verifyPassword(user.passwordHash, input.password) : false;
 
     if (!user || !valid) {

@@ -2,7 +2,7 @@ import HttpStatus from '../types/enums/http-status';
 
 export const Errors = {
   ValidationFailed: { status: HttpStatus.BadRequest, message: 'Datos inválidos' },
-  InvalidCredentials: { status: HttpStatus.Unauthorized, message: 'Cédula o contraseña incorrecta' },
+  InvalidCredentials: { status: HttpStatus.Unauthorized, message: 'Credenciales incorrectas' },
   Unauthenticated: { status: HttpStatus.Unauthorized, message: 'Sesión no válida' },
   Forbidden: { status: HttpStatus.Forbidden, message: 'No tienes permisos para esta acción' },
   AccountPending: { status: HttpStatus.Forbidden, message: 'Tu cuenta está pendiente de aprobación' },

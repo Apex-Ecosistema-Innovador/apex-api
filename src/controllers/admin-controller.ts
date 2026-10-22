@@ -6,13 +6,30 @@ import UserStatus from '../types/enums/user-status';
 import { Successes } from '../constants/responses';
 import { validate } from '../validators/validate';
 import { uuidSchema } from '../validators/common';
-import { createAdminSchema, createInviteSchema, teachersQuerySchema } from '../validators/admin-validator';
+import {
+  createAdminSchema,
+  createInviteSchema,
+  inscripcionesQuerySchema,
+  resumenInscripcionesQuerySchema,
+  teachersQuerySchema,
+} from '../validators/admin-validator';
 
 class AdminController {
   public static async listTeachers(req: Request, res: Response) {
     const { status, page, limit } = validate(teachersQuerySchema, req.query);
     const { teachers, total } = await AdminService.listTeachers(status, page, limit);
     BaseController.handleSuccess(res, { payload: teachers, total, page, limit });
+  }
+
+  public static async listInscripciones(req: Request, res: Response) {
+    const { page, limit, ...filtros } = validate(inscripcionesQuerySchema, req.query);
+    const { rows, total } = await AdminService.listInscripciones(filtros, page, limit);
+    BaseController.handleSuccess(res, { payload: rows, total, page, limit });
+  }
+
+  public static async resumenInscripciones(req: Request, res: Response) {
+    const { hackathonId } = validate(resumenInscripcionesQuerySchema, req.query);
+    BaseController.handleSuccess(res, { payload: await AdminService.resumenInscripciones(hackathonId) });
   }
 
   public static async approveTeacher(req: Request, res: Response) {

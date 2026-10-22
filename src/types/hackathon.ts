@@ -98,3 +98,37 @@ export interface ResultadoInscripcion {
   estado: EstadoInscripcion;
   correoVerificado: boolean;
 }
+
+export interface InscripcionAdmin {
+  id: string;
+  estado: EstadoInscripcion;
+  creadoEn: Date;
+  nombre: string;
+  correo: string;
+  correoVerificadoEn: Date | null;
+  github: string | null;
+  linkedin: string | null;
+  portafolio: string | null;
+  institucion: string;
+  programa: string;
+  semestre: number;
+  tecnologias: string[];
+  nivelExperiencia: string | null;
+  consientePublicacionImagen: boolean;
+  reglamentoVersion: string;
+  datosVersion: string;
+  aceptadoEn: Date;
+}
+
+export interface FiltrosInscripciones {
+  hackathonId?: string;
+  estado?: EstadoInscripcion;
+  verificado?: boolean;
+  q?: string;
+}
+
+export interface ResumenInscripciones {
+  total: number;
+  verificadas: number;
+  porEstado: Record<EstadoInscripcion, number>;
+}
